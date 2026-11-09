@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#212121">
+<title>Qwen3 Chat</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#212121;color:#eee;font-family:Arial,"Noto Sans JP",sans-serif}
+.app{display:flex;height:100dvh;overflow:hidden}
+.sidebar{width:250px;background:#171717;padding:18px;display:flex;flex-direction:column;gap:14px}
+.brand{font-size:20px;font-weight:700;padding:8px}
+button{cursor:pointer;border:1px solid #444;background:#303030;color:#eee;border-radius:10px;padding:11px 14px;font-size:14px}
+button:hover{background:#414141}
+.newchat{width:100%;text-align:left}
+.side-note{color:#999;font-size:12px;line-height:1.6;margin-top:auto}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{height:58px;border-bottom:1px solid #383838;display:flex;align-items:center;padding:0 20px;gap:12px}
+.topbar strong{font-size:16px}
+.status{font-size:12px;color:#aaa;margin-left:auto}
+.messages{flex:1;overflow:auto;padding:28px 18px 18px}
+.welcome{max-width:700px;margin:12vh auto 0;text-align:center}
+.welcome h1{font-size:30px;font-weight:600}
+.welcome p{color:#aaa;line-height:1.7}
+.message{max-width:760px;margin:0 auto 24px;display:flex;gap:13px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+.avatar{width:30px;height:30px;flex:none;border-radius:50%;background:#444;display:grid;place-items:center;font-size:13px}
+.content{padding-top:3px;min-width:0}
+.content.user{color:#fff}
+.content.assistant{color:#e2e2e2}
+.composer-wrap{padding:12px 18px 20px}
+.composer{max-width:760px;margin:auto;background:#303030;border:1px solid #505050;border-radius:18px;padding:10px;display:flex;gap:8px;align-items:end}
+textarea{flex:1;resize:none;max-height:180px;min-height:42px;background:transparent;border:0;outline:0;color:#fff;font:15px/1.5 Arial,"Noto Sans JP",sans-serif;padding:10px}
+.send{background:#eee;color:#222;border:0;border-radius:12px;font-weight:700}
+.send:disabled{opacity:.4;cursor:not-allowed}
+.hint{text-align:center;color:#888;font-size:11px;margin:9px}
+.modelbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid #383838}
+.modelbar button{font-size:12px;padding:8px 10px}
+#statusText{font-size:12px;color:#aaa}
+#mobileMenu{display:none}
+@media(max-width:700px){
+.sidebar{display:none;position:absolute;z-index:5;inset:0 auto 0 0;width:260px}
+.sidebar.open{display:flex}
+#mobileMenu{display:block}
+.welcome h1{font-size:25px}
+.messages{padding:20px 13px}
+.composer-wrap{padding:10px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">✳ Qwen3 Chat</div>
+    <button class="newchat" id="newChat">＋ 新しいチャット</button>
+    <div style="color:#999;font-size:12px">ローカル会話履歴</div>
+    <div class="side-note">
+      AIモデル：Qwen3-4B<br>
+      推論：ブラウザ内で実行<br>
+      会話履歴：この端末に保存
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button id="mobileMenu">☰</button>
+      <strong>Qwen3 Chat</strong>
+      <span class="status" id="topStatus">モデル未読み込み</span>
+    </header>
+
+    <div class="modelbar">
+      <button id="loadModel">モデルを読み込む</button>
+      <span id="statusText">初回はインターネット接続が必要です。</span>
+    </div>
+
+    <section class="messages" id="messages">
+      <div class="welcome" id="welcome">
+        <h1>今日は何をお手伝いしましょうか？</h1>
+        <p>Qwen3-4Bをブラウザ内で動かすAIチャットです。<br>
+        最初にモデルを読み込んでください。</p>
+      </div>
+    </section>
+
+    <div class="composer-wrap">
+      <div class="composer">
+        <textarea id="prompt" rows="1" placeholder="メッセージを入力..."></textarea>
+        <button class="send" id="send" disabled>↑</button>
+      </div>
+      <div class="hint">Qwen3 ChatはAIの回答を誤ることがあります。</div>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+import { pipeline, env } from
+  "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
+
+const MODEL = "onnx-community/Qwen3-4B-ONNX";
+const $ = (id) => document.getElementById(id);
+
+let generator = null;
+let busy = false;
+let history = [];
+
+env.useBrowserCache = true;
+env.useWasmCache = true;
+
+function setStatus(message) {
+  $("statusText").textContent = message;
+  $("topStatus").textContent = message;
+}
+
+function saveHistory() {
+  try {
+    localStorage.setItem("qwen3-chat-history", JSON.stringify(history));
+  } catch (e) {
+    setStatus("履歴を保存できませんでした");
+  }
+}
+
+function addMessage(role, text) {
+  $("welcome")?.remove();
+
+  const row = document.createElement("div");
+  row.className = "message";
+
+  const avatar = document.createElement("div");
+  avatar.className = "avatar";
+  avatar.textContent = role === "user" ? "君" : "AI";
+
+  const content = document.createElement("div");
+  content.className = "content " + role;
+  content.textContent = text;
+
+  row.append(avatar, content);
+  $("messages").append(row);
+  $("messages").scrollTop = $("messages").scrollHeight;
+  return content;
+}
+
+function renderHistory() {
+  $("messages").innerHTML = "";
+  if (!history.length) {
+    $("messages").innerHTML =
+      '<div class="welcome" id="welcome"><h1>今日は何をお手伝いしましょうか？</h1><p>Qwen3-4Bをブラウザ内で動かすAIチャットです。</p></div>';
+    return;
+  }
+  for (const item of history) {
+    addMessage(item.role, item.content);
+  }
+}
+
+async function loadModel() {
+  if (generator) return;
+  if (busy) return;
+
+  busy = true;
+  $("loadModel").disabled = true;
+  setStatus("GPUを確認しています...");
+
+  try {
+    if (!navigator.gpu) {
+      throw new Error("このブラウザではWebGPUが利用できません。");
+    }
+
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) {
+      throw new Error("利用できるGPUアダプターが見つかりません。");
+    }
+
+    if (navigator.storage?.persist) {
+      await navigator.storage.persist();
+    }
+
+    setStatus("Qwen3-4Bを読み込んでいます。初回は時間がかかります...");
+    generator = await pipeline("text-generation", MODEL, {
+      device: "webgpu",
+      progress_callback: (p) => {
+        if (p.status === "progress" && p.file) {
+          const percent = p.progress ? Math.round(p.progress) : 0;
+          setStatus("ダウンロード中：" + p.file + " " + percent + "%");
+        } else if (p.status) {
+          setStatus("準備中：" + p.status);
+        }
+      }
+    });
+
+    setStatus("モデル読み込み完了！");
+    $("send").disabled = false;
+    $("loadModel").textContent = "読み込み済み";
+  } catch (error) {
+    generator = null;
+    setStatus("読み込みエラー：" + error.message);
+    $("loadModel").disabled = false;
+    $("loadModel").textContent = "もう一度読み込む";
+  } finally {
+    busy = false;
+  }
+}
+
+async function sendMessage() {
+  const text = $("prompt").value.trim();
+  if (!text || !generator || busy) return;
+
+  $("prompt").value = "";
+  $("prompt").style.height = "42px";
+
+  history.push({ role: "user", content: text });
+  addMessage("user", text);
+  saveHistory();
+
+  const answerBox = addMessage("assistant", "考えています...");
+  $("send").disabled = true;
+  busy = true;
+  setStatus("回答を生成しています...");
+
+  try {
+    const messages = [
+      {
+        role: "system",
+        content: "あなたは親切で正確な日本語AIアシスタントです。不明なことは不明と伝えてください。"
+      },
+      ...history.slice(-10).map(x => ({
+        role: x.role,
+        content: x.content
+      }))
+    ];
+
+    const result = await generator(messages, {
+      max_new_tokens: 512,
+      temperature: 0.7,
+      do_sample: true
+    });
+
+    let answer = result[0].generated_text;
+    if (Array.isArray(answer)) {
+      answer = answer[answer.length - 1]?.content ?? "";
+    }
+    answer = String(answer)
+      .replace(/<think>[\s\S]*?<\/think>/g, "")
+      .trim();
+
+    if (!answer) answer = "回答を生成できませんでした。もう一度試してください。";
+
+    answerBox.textContent = answer;
+    history.push({ role: "assistant", content: answer });
+    saveHistory();
+    setStatus("準備完了");
+  } catch (error) {
+    answerBox.textContent = "エラーが発生しました： " + error.message;
+    setStatus("生成エラー");
+  } finally {
+    busy = false;
+    $("send").disabled = false;
+    $("prompt").focus();
+  }
+}
+
+$("loadModel").addEventListener("click", loadModel);
+$("send").addEventListener("click", sendMessage);
+$("prompt").addEventListener("input", () => {
+  $("prompt").style.height = "42px";
+  $("prompt").style.height = Math.min($("prompt").scrollHeight, 180) + "px";
+});
+$("prompt").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+$("newChat").addEventListener("click", () => {
+  if (busy) return;
+  history = [];
+  saveHistory();
+  renderHistory();
+});
+$("mobileMenu").addEventListener("click", () => {
+  $("sidebar").classList.toggle("open");
+});
+
+try {
+  history = JSON.parse(localStorage.getItem("qwen3-chat-history") || "[]");
+  if (!Array.isArray(history)) history = [];
+} catch {
+  history = [];
+}
+renderHistory();
+</script>
+</body>
+</html>
