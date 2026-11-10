@@ -1,93 +1,683 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#212121">
+<meta name="theme-color" content="#212722">
 <title>Qwen3 Chat</title>
+
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#212121;color:#eee;font-family:Arial,"Noto Sans JP",sans-serif}
-.app{display:flex;height:100dvh;overflow:hidden}
-.sidebar{width:250px;background:#171717;padding:18px;display:flex;flex-direction:column;gap:14px}
-.brand{font-size:20px;font-weight:700;padding:8px}
-button{cursor:pointer;border:1px solid #444;background:#303030;color:#eee;border-radius:10px;padding:11px 14px;font-size:14px}
-button:hover{background:#414141}
-.newchat{width:100%;text-align:left}
-.side-note{color:#999;font-size:12px;line-height:1.6;margin-top:auto}
-.main{flex:1;min-width:0;display:flex;flex-direction:column}
-.topbar{height:58px;border-bottom:1px solid #383838;display:flex;align-items:center;padding:0 20px;gap:12px}
-.topbar strong{font-size:16px}
-.status{font-size:12px;color:#aaa;margin-left:auto}
-.messages{flex:1;overflow:auto;padding:28px 18px 18px}
-.welcome{max-width:700px;margin:12vh auto 0;text-align:center}
-.welcome h1{font-size:30px;font-weight:600}
-.welcome p{color:#aaa;line-height:1.7}
-.message{max-width:760px;margin:0 auto 24px;display:flex;gap:13px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
-.avatar{width:30px;height:30px;flex:none;border-radius:50%;background:#444;display:grid;place-items:center;font-size:13px}
-.content{padding-top:3px;min-width:0}
-.content.user{color:#fff}
-.content.assistant{color:#e2e2e2}
-.composer-wrap{padding:12px 18px 20px}
-.composer{max-width:760px;margin:auto;background:#303030;border:1px solid #505050;border-radius:18px;padding:10px;display:flex;gap:8px;align-items:end}
-textarea{flex:1;resize:none;max-height:180px;min-height:42px;background:transparent;border:0;outline:0;color:#fff;font:15px/1.5 Arial,"Noto Sans JP",sans-serif;padding:10px}
-.send{background:#eee;color:#222;border:0;border-radius:12px;font-weight:700}
-.send:disabled{opacity:.4;cursor:not-allowed}
-.hint{text-align:center;color:#888;font-size:11px;margin:9px}
-.modelbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid #383838}
-.modelbar button{font-size:12px;padding:8px 10px}
-#statusText{font-size:12px;color:#aaa}
-#mobileMenu{display:none}
-@media(max-width:700px){
-.sidebar{display:none;position:absolute;z-index:5;inset:0 auto 0 0;width:260px}
-.sidebar.open{display:flex}
-#mobileMenu{display:block}
-.welcome h1{font-size:25px}
-.messages{padding:20px 13px}
-.composer-wrap{padding:10px}
+:root {
+  --bg: #212722;
+  --sidebar: #191e1a;
+  --panel: #292f2a;
+  --panel-hover: #343d35;
+  --border: #3a443b;
+  --text: #edf1ed;
+  --muted: #a0aaa1;
+  --green: #a8d8b2;
+  --green-dark: #294d34;
+  --font: Arial, "Noto Sans JP", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  height: 100dvh;
+  overflow: hidden;
+}
+
+button, textarea { font: inherit; }
+button { cursor: pointer; }
+
+.app {
+  display: flex;
+  height: 100dvh;
+  width: 100%;
+}
+
+/* Sidebar */
+
+.sidebar {
+  width: 270px;
+  flex-shrink: 0;
+  background: var(--sidebar);
+  border-right: 1px solid rgba(255,255,255,.035);
+  display: flex;
+  flex-direction: column;
+  padding: 18px 13px 14px;
+  transition: transform .25s ease;
+  z-index: 20;
+}
+
+.sidebar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 7px 23px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -.5px;
+}
+
+.brand-mark {
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+}
+
+.brand-mark svg {
+  width: 30px;
+  height: 30px;
+}
+
+.icon-button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 9px;
+  font-size: 19px;
+}
+
+.icon-button:hover {
+  background: var(--panel-hover);
+  color: white;
+}
+
+.new-chat {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font-size: 13px;
+  transition: .2s;
+}
+
+.new-chat:hover {
+  background: var(--panel-hover);
+  border-color: #59685b;
+}
+
+.new-chat span:first-child {
+  font-size: 20px;
+  color: var(--green);
+}
+
+.sidebar-label {
+  padding: 25px 10px 9px;
+  color: #8e9b90;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .7px;
+}
+
+.chat-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.chat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 11px;
+  border: 0;
+  border-radius: 9px;
+  color: #cbd3cc;
+  background: transparent;
+  text-align: left;
+  font-size: 12px;
+}
+
+.chat-item:hover,
+.chat-item.active {
+  background: #303a32;
+  color: white;
+}
+
+.chat-item .chat-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.delete-chat {
+  opacity: 0;
+  color: #aab5ab;
+  border: 0;
+  background: transparent;
+  padding: 3px;
+  border-radius: 5px;
+}
+
+.chat-item:hover .delete-chat {
+  opacity: 1;
+}
+
+.delete-chat:hover {
+  background: #4b3a37;
+  color: #ffaaa0;
+}
+
+.sidebar-bottom {
+  border-top: 1px solid var(--border);
+  padding: 14px 5px 2px;
+}
+
+.model-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+}
+
+.profile-icon {
+  width: 35px;
+  height: 35px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: #294633;
+  color: #bce5c4;
+  font-size: 17px;
+}
+
+.profile-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-name {
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.profile-description {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* Main */
+
+.main {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.topbar {
+  height: 61px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 23px;
+  border-bottom: 1px solid rgba(255,255,255,.055);
+}
+
+.top-title {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.model-status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #a78b55;
+}
+
+.status-dot.ready {
+  background: #8ed5a0;
+  box-shadow: 0 0 8px #8ed5a066;
+}
+
+.model-button {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  background: #303a32;
+  color: #d8e7da;
+  border-radius: 9px;
+  font-size: 11px;
+}
+
+.model-button:hover {
+  background: #3b4a3e;
+}
+
+.model-button:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+/* Messages */
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 35px 22px 24px;
+  scroll-behavior: smooth;
+}
+
+.message-area {
+  width: 100%;
+  max-width: 790px;
+  margin: 0 auto;
+}
+
+.welcome {
+  min-height: 58vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 25px 10px;
+}
+
+.welcome-mark {
+  width: 57px;
+  height: 57px;
+  margin-bottom: 24px;
+}
+
+.welcome-mark svg {
+  width: 100%;
+  height: 100%;
+}
+
+.welcome h1 {
+  font-size: clamp(24px, 3vw, 31px);
+  font-weight: 570;
+  letter-spacing: -1.1px;
+  margin: 0 0 13px;
+}
+
+.welcome p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.9;
+  margin: 0;
+}
+
+.suggestions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 30px;
+}
+
+.suggestion {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: #c6d0c7;
+  border-radius: 22px;
+  padding: 10px 14px;
+  font-size: 11px;
+  transition: .2s;
+}
+
+.suggestion:hover {
+  background: var(--panel-hover);
+  border-color: #708674;
+}
+
+.message {
+  display: flex;
+  gap: 14px;
+  margin: 0 auto 29px;
+  line-height: 1.85;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.message-avatar {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.message.user .message-avatar {
+  background: #465448;
+  color: white;
+}
+
+.message.assistant .message-avatar {
+  background: #294d34;
+  color: #c1e8c9;
+}
+
+.message-content {
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.message.assistant .message-content {
+  color: #e3e9e3;
+}
+
+.message.user .message-content {
+  color: #f3f5f3;
+}
+
+.message-content p {
+  margin: 0;
+}
+
+/* Composer */
+
+.composer-wrap {
+  flex-shrink: 0;
+  padding: 10px 20px 20px;
+}
+
+.composer {
+  width: 100%;
+  max-width: 790px;
+  margin: 0 auto;
+  border: 1px solid #536055;
+  background: #303a32;
+  border-radius: 22px;
+  padding: 11px 12px 10px 17px;
+  box-shadow: 0 7px 25px #00000016;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.composer:focus-within {
+  border-color: #8bab91;
+  box-shadow: 0 0 0 3px #9ed0a511;
+}
+
+textarea {
+  display: block;
+  width: 100%;
+  min-height: 43px;
+  max-height: 170px;
+  resize: none;
+  outline: none;
+  border: 0;
+  background: transparent;
+  color: white;
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 9px 2px;
+}
+
+textarea::placeholder {
+  color: #9ba99d;
+}
+
+.composer-bottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 35px;
+}
+
+.composer-hint {
+  color: #91a092;
+  font-size: 10px;
+  padding-left: 3px;
+}
+
+.spacer { flex: 1; }
+
+.send-button {
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--green);
+  color: #203125;
+  font-size: 20px;
+  font-weight: bold;
+  transition: .2s;
+}
+
+.send-button:hover {
+  background: #c0e9c8;
+  transform: translateY(-1px);
+}
+
+.send-button:disabled {
+  background: #627467;
+  color: #b0bbb1;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.hint {
+  text-align: center;
+  font-size: 10px;
+  color: #89958b;
+  margin-top: 11px;
+}
+
+/* Loading */
+
+.loading-text {
+  color: #a9c6ad;
+  font-size: 13px;
+  animation: pulse 1.3s infinite;
+}
+
+@keyframes pulse {
+  50% { opacity: .45; }
+}
+
+/* Mobile */
+
+.mobile-overlay {
+  display: none;
+}
+
+@media(max-width:760px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 280px;
+    transform: translateX(-105%);
+    box-shadow: 10px 0 35px #00000035;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .mobile-overlay.open {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 15;
+    background: #0008;
+  }
+
+  .topbar {
+    height: 56px;
+    padding: 0 12px;
+  }
+
+  .messages {
+    padding: 22px 14px;
+  }
+
+  .composer-wrap {
+    padding: 8px 11px 13px;
+  }
+
+  .welcome {
+    min-height: 53vh;
+  }
+
+  .welcome h1 {
+    font-size: 23px;
+  }
+
+  .suggestions {
+    gap: 7px;
+  }
+
+  .suggestion {
+    font-size: 10px;
+    padding: 9px 11px;
+  }
+
+  .model-button {
+    padding: 7px 9px;
+  }
+
+  .message {
+    font-size: 13px;
+  }
 }
 </style>
 </head>
+
 <body>
 <div class="app">
+
+  <div class="mobile-overlay" id="overlay"></div>
+
   <aside class="sidebar" id="sidebar">
-    <div class="brand">✳ Qwen3 Chat</div>
-    <button class="newchat" id="newChat">＋ 新しいチャット</button>
-    <div style="color:#999;font-size:12px">ローカル会話履歴</div>
-    <div class="side-note">
-      AIモデル：Qwen3-4B<br>
-      推論：ブラウザ内で実行<br>
-      会話履歴：この端末に保存
+
+    <div class="sidebar-top">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg viewBox="0 0 100 100" fill="none">
+            <g stroke="#A8D8B2" stroke-width="7" stroke-linecap="round">
+              <path d="M50 8V29"/>
+              <path d="M50 71V92"/>
+              <path d="M8 50H29"/>
+              <path d="M71 50H92"/>
+              <path d="M20 20L35 35"/>
+              <path d="M65 65L80 80"/>
+              <path d="M80 20L65 35"/>
+              <path d="M35 65L20 80"/>
+            </g>
+            <circle cx="50" cy="50" r="10" fill="#A8D8B2"/>
+          </svg>
+        </div>
+        Qwen3 Chat
+      </div>
+      <button class="icon-button" id="closeSidebar" title="閉じる">‹</button>
     </div>
+
+    <button class="new-chat" id="newChat">
+      <span>＋</span>
+      新しいチャット
+    </button>
+
+    <div class="sidebar-label">最近のチャット</div>
+
+    <div class="chat-list" id="chatList"></div>
+
+    <div class="sidebar-bottom">
+      <div class="model-profile">
+        <div class="profile-icon">✳</div>
+        <div class="profile-info">
+          <div class="profile-name">Qwen3-4B</div>
+          <div class="profile-description">ブラウザ内ローカルAI</div>
+        </div>
+        <button class="icon-button" id="modelSettings" title="モデル読み込み">⚙</button>
+      </div>
+    </div>
+
   </aside>
 
   <main class="main">
+
     <header class="topbar">
-      <button id="mobileMenu">☰</button>
-      <strong>Qwen3 Chat</strong>
-      <span class="status" id="topStatus">モデル未読み込み</span>
+      <button class="icon-button" id="mobileMenu" title="メニュー">☰</button>
+      <div class="top-title">Qwen3 Chat</div>
+
+      <div class="model-status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="topStatus">未読み込み</span>
+      </div>
+
+      <button class="model-button" id="loadModel">
+        モデルを読み込む
+      </button>
     </header>
 
-    <div class="modelbar">
-      <button id="loadModel">モデルを読み込む</button>
-      <span id="statusText">初回はインターネット接続が必要です。</span>
-    </div>
-
     <section class="messages" id="messages">
-      <div class="welcome" id="welcome">
-        <h1>今日は何をお手伝いしましょうか？</h1>
-        <p>Qwen3-4Bをブラウザ内で動かすAIチャットです。<br>
-        最初にモデルを読み込んでください。</p>
-      </div>
+      <div class="message-area" id="messageArea"></div>
     </section>
 
     <div class="composer-wrap">
       <div class="composer">
-        <textarea id="prompt" rows="1" placeholder="メッセージを入力..."></textarea>
-        <button class="send" id="send" disabled>↑</button>
+        <textarea
+          id="prompt"
+          rows="1"
+          placeholder="Qwen3にメッセージを送信..."
+        ></textarea>
+
+        <div class="composer-bottom">
+          <span class="composer-hint" id="statusText">
+            初回はモデルのダウンロードが必要です
+          </span>
+          <span class="spacer"></span>
+          <button class="send-button" id="send" disabled title="送信">
+            ↑
+          </button>
+        </div>
       </div>
-      <div class="hint">Qwen3 ChatはAIの回答を誤ることがあります。</div>
+
+      <div class="hint">
+        Qwen3 Chat · AIの回答は必ずしも正確とは限りません
+      </div>
     </div>
+
   </main>
 </div>
 
@@ -96,103 +686,251 @@ import { pipeline, env } from
   "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
 
 const MODEL = "onnx-community/Qwen3-4B-ONNX";
-const $ = (id) => document.getElementById(id);
+const $ = id => document.getElementById(id);
 
 let generator = null;
 let busy = false;
-let history = [];
+let conversations = [];
+let currentId = null;
 
 env.useBrowserCache = true;
 env.useWasmCache = true;
 
-function setStatus(message) {
-  $("statusText").textContent = message;
-  $("topStatus").textContent = message;
+function createId() {
+  return Date.now().toString(36) +
+    Math.random().toString(36).slice(2, 7);
 }
 
-function saveHistory() {
+function setStatus(message, ready = false) {
+  $("statusText").textContent = message;
+  $("topStatus").textContent = ready ? "準備完了" : message;
+  $("statusDot").classList.toggle("ready", ready);
+}
+
+function getCurrent() {
+  return conversations.find(c => c.id === currentId);
+}
+
+function saveConversations() {
   try {
-    localStorage.setItem("qwen3-chat-history", JSON.stringify(history));
+    localStorage.setItem(
+      "qwen3-chat-conversations",
+      JSON.stringify(conversations)
+    );
   } catch (e) {
-    setStatus("履歴を保存できませんでした");
+    setStatus("会話の保存に失敗しました");
   }
 }
 
-function addMessage(role, text) {
-  $("welcome")?.remove();
+function makeConversation() {
+  const chat = {
+    id: createId(),
+    title: "新しいチャット",
+    messages: [],
+    updated: Date.now()
+  };
 
-  const row = document.createElement("div");
-  row.className = "message";
-
-  const avatar = document.createElement("div");
-  avatar.className = "avatar";
-  avatar.textContent = role === "user" ? "君" : "AI";
-
-  const content = document.createElement("div");
-  content.className = "content " + role;
-  content.textContent = text;
-
-  row.append(avatar, content);
-  $("messages").append(row);
-  $("messages").scrollTop = $("messages").scrollHeight;
-  return content;
+  conversations.unshift(chat);
+  currentId = chat.id;
+  saveConversations();
+  renderAll();
 }
 
-function renderHistory() {
-  $("messages").innerHTML = "";
-  if (!history.length) {
-    $("messages").innerHTML =
-      '<div class="welcome" id="welcome"><h1>今日は何をお手伝いしましょうか？</h1><p>Qwen3-4Bをブラウザ内で動かすAIチャットです。</p></div>';
+function makeWelcome() {
+  return `
+    <div class="welcome">
+      <div class="welcome-mark">
+        <svg viewBox="0 0 100 100" fill="none">
+          <g stroke="#A8D8B2" stroke-width="7" stroke-linecap="round">
+            <path d="M50 8V29"/>
+            <path d="M50 71V92"/>
+            <path d="M8 50H29"/>
+            <path d="M71 50H92"/>
+            <path d="M20 20L35 35"/>
+            <path d="M65 65L80 80"/>
+            <path d="M80 20L65 35"/>
+            <path d="M35 65L20 80"/>
+          </g>
+          <circle cx="50" cy="50" r="10" fill="#A8D8B2"/>
+        </svg>
+      </div>
+
+      <h1>今日は何をお手伝いしましょうか？</h1>
+      <p>
+        Qwen3-4Bと自由に会話しましょう。<br>
+        あなた専用のローカルAIアシスタントです。
+      </p>
+
+      <div class="suggestions">
+        <button class="suggestion" data-prompt="Pythonを初心者向けに教えて">
+          プログラミングを学ぶ
+        </button>
+        <button class="suggestion" data-prompt="面白い科学の雑学を教えて">
+          科学の雑学
+        </button>
+        <button class="suggestion" data-prompt="今日の勉強計画を考えて">
+          勉強を手伝って
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderMessages() {
+  const chat = getCurrent();
+  const area = $("messageArea");
+
+  area.innerHTML = "";
+
+  if (!chat || chat.messages.length === 0) {
+    area.innerHTML = makeWelcome();
+    area.querySelectorAll("[data-prompt]").forEach(button => {
+      button.addEventListener("click", () => {
+        $("prompt").value = button.dataset.prompt;
+        $("prompt").focus();
+        resizePrompt();
+      });
+    });
     return;
   }
-  for (const item of history) {
-    addMessage(item.role, item.content);
+
+  for (const item of chat.messages) {
+    addMessageElement(item.role, item.content);
   }
+
+  scrollBottom();
+}
+
+function addMessageElement(role, content) {
+  const row = document.createElement("div");
+  row.className = "message " + role;
+
+  const avatar = document.createElement("div");
+  avatar.className = "message-avatar";
+  avatar.textContent = role === "user" ? "君" : "✳";
+
+  const text = document.createElement("div");
+  text.className = "message-content";
+  text.textContent = content;
+
+  row.append(avatar, text);
+  $("messageArea").append(row);
+
+  return text;
+}
+
+function scrollBottom() {
+  $("messages").scrollTop = $("messages").scrollHeight;
+}
+
+function renderSidebar() {
+  const list = $("chatList");
+  list.innerHTML = "";
+
+  for (const chat of conversations) {
+    const row = document.createElement("div");
+    row.className =
+      "chat-item" + (chat.id === currentId ? " active" : "");
+
+    const title = document.createElement("span");
+    title.className = "chat-title";
+    title.textContent = chat.title;
+
+    const remove = document.createElement("button");
+    remove.className = "delete-chat";
+    remove.textContent = "×";
+    remove.title = "会話を削除";
+
+    remove.addEventListener("click", e => {
+      e.stopPropagation();
+      if (busy) return;
+
+      conversations = conversations.filter(
+        c => c.id !== chat.id
+      );
+
+      if (currentId === chat.id) {
+        currentId = conversations[0]?.id || null;
+        if (!currentId) makeConversation();
+      }
+
+      saveConversations();
+      renderAll();
+    });
+
+    row.append(title, remove);
+
+    row.addEventListener("click", () => {
+      if (busy) return;
+      currentId = chat.id;
+      renderAll();
+      closeMobileSidebar();
+    });
+
+    list.append(row);
+  }
+}
+
+function renderAll() {
+  renderSidebar();
+  renderMessages();
 }
 
 async function loadModel() {
-  if (generator) return;
-  if (busy) return;
+  if (generator || busy) return;
 
   busy = true;
   $("loadModel").disabled = true;
+  $("loadModel").textContent = "読み込み中...";
   setStatus("GPUを確認しています...");
 
   try {
     if (!navigator.gpu) {
-      throw new Error("このブラウザではWebGPUが利用できません。");
+      throw new Error(
+        "このブラウザではWebGPUが利用できません。"
+      );
     }
 
     const adapter = await navigator.gpu.requestAdapter();
+
     if (!adapter) {
-      throw new Error("利用できるGPUアダプターが見つかりません。");
+      throw new Error("GPUアダプターが見つかりません。");
     }
 
     if (navigator.storage?.persist) {
       await navigator.storage.persist();
     }
 
-    setStatus("Qwen3-4Bを読み込んでいます。初回は時間がかかります...");
+    setStatus("Qwen3-4Bを読み込んでいます...");
+
     generator = await pipeline("text-generation", MODEL, {
       device: "webgpu",
-      progress_callback: (p) => {
+
+      progress_callback: p => {
         if (p.status === "progress" && p.file) {
-          const percent = p.progress ? Math.round(p.progress) : 0;
-          setStatus("ダウンロード中：" + p.file + " " + percent + "%");
+          const percent = p.progress
+            ? Math.round(p.progress)
+            : 0;
+
+          setStatus(
+            "ダウンロード中：" +
+            p.file + " " + percent + "%"
+          );
         } else if (p.status) {
           setStatus("準備中：" + p.status);
         }
       }
     });
 
-    setStatus("モデル読み込み完了！");
+    setStatus("モデル読み込み完了！", true);
     $("send").disabled = false;
     $("loadModel").textContent = "読み込み済み";
+
   } catch (error) {
     generator = null;
     setStatus("読み込みエラー：" + error.message);
     $("loadModel").disabled = false;
-    $("loadModel").textContent = "もう一度読み込む";
+    $("loadModel").textContent = "再読み込み";
   } finally {
     busy = false;
   }
@@ -200,16 +938,40 @@ async function loadModel() {
 
 async function sendMessage() {
   const text = $("prompt").value.trim();
+
   if (!text || !generator || busy) return;
 
+  if (!currentId || !getCurrent()) {
+    makeConversation();
+  }
+
+  const chat = getCurrent();
+
   $("prompt").value = "";
-  $("prompt").style.height = "42px";
+  resizePrompt();
 
-  history.push({ role: "user", content: text });
-  addMessage("user", text);
-  saveHistory();
+  chat.messages.push({
+    role: "user",
+    content: text
+  });
 
-  const answerBox = addMessage("assistant", "考えています...");
+  if (chat.messages.length === 1) {
+    chat.title = text.slice(0, 24) +
+      (text.length > 24 ? "..." : "");
+  }
+
+  chat.updated = Date.now();
+
+  saveConversations();
+  renderAll();
+
+  const answerBox = addMessageElement(
+    "assistant",
+    "考えています..."
+  );
+
+  answerBox.classList.add("loading-text");
+
   $("send").disabled = true;
   busy = true;
   setStatus("回答を生成しています...");
@@ -218,11 +980,13 @@ async function sendMessage() {
     const messages = [
       {
         role: "system",
-        content: "あなたは親切で正確な日本語AIアシスタントです。不明なことは不明と伝えてください。"
+        content:
+          "あなたは親切で正確な日本語AIアシスタントです。" +
+          "不明なことは不明と伝えてください。"
       },
-      ...history.slice(-10).map(x => ({
-        role: x.role,
-        content: x.content
+      ...chat.messages.slice(-10).map(item => ({
+        role: item.role,
+        content: item.content
       }))
     ];
 
@@ -233,58 +997,127 @@ async function sendMessage() {
     });
 
     let answer = result[0].generated_text;
+
     if (Array.isArray(answer)) {
       answer = answer[answer.length - 1]?.content ?? "";
     }
+
     answer = String(answer)
       .replace(/<think>[\s\S]*?<\/think>/g, "")
       .trim();
 
-    if (!answer) answer = "回答を生成できませんでした。もう一度試してください。";
+    if (!answer) {
+      answer = "回答を生成できませんでした。";
+    }
 
+    answerBox.classList.remove("loading-text");
     answerBox.textContent = answer;
-    history.push({ role: "assistant", content: answer });
-    saveHistory();
-    setStatus("準備完了");
+
+    chat.messages.push({
+      role: "assistant",
+      content: answer
+    });
+
+    chat.updated = Date.now();
+
+    saveConversations();
+    renderSidebar();
+
+    setStatus("準備完了", true);
+
   } catch (error) {
-    answerBox.textContent = "エラーが発生しました： " + error.message;
+    answerBox.classList.remove("loading-text");
+    answerBox.textContent =
+      "エラーが発生しました：" + error.message;
+
     setStatus("生成エラー");
+
   } finally {
     busy = false;
-    $("send").disabled = false;
+    $("send").disabled = !generator;
     $("prompt").focus();
+    scrollBottom();
   }
 }
 
+function resizePrompt() {
+  const input = $("prompt");
+  input.style.height = "auto";
+  input.style.height =
+    Math.min(input.scrollHeight, 170) + "px";
+}
+
+function closeMobileSidebar() {
+  $("sidebar").classList.remove("open");
+  $("overlay").classList.remove("open");
+}
+
+function openMobileSidebar() {
+  $("sidebar").classList.add("open");
+  $("overlay").classList.add("open");
+}
+
+/* Events */
+
 $("loadModel").addEventListener("click", loadModel);
+$("modelSettings").addEventListener("click", loadModel);
 $("send").addEventListener("click", sendMessage);
-$("prompt").addEventListener("input", () => {
-  $("prompt").style.height = "42px";
-  $("prompt").style.height = Math.min($("prompt").scrollHeight, 180) + "px";
+
+$("newChat").addEventListener("click", () => {
+  if (busy) return;
+  makeConversation();
+  closeMobileSidebar();
 });
-$("prompt").addEventListener("keydown", (e) => {
+
+$("mobileMenu").addEventListener(
+  "click",
+  openMobileSidebar
+);
+
+$("closeSidebar").addEventListener(
+  "click",
+  closeMobileSidebar
+);
+
+$("overlay").addEventListener(
+  "click",
+  closeMobileSidebar
+);
+
+$("prompt").addEventListener("input", resizePrompt);
+
+$("prompt").addEventListener("keydown", e => {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
     sendMessage();
   }
 });
-$("newChat").addEventListener("click", () => {
-  if (busy) return;
-  history = [];
-  saveHistory();
-  renderHistory();
-});
-$("mobileMenu").addEventListener("click", () => {
-  $("sidebar").classList.toggle("open");
-});
+
+/* Restore saved conversations */
 
 try {
-  history = JSON.parse(localStorage.getItem("qwen3-chat-history") || "[]");
-  if (!Array.isArray(history)) history = [];
+  const saved = JSON.parse(
+    localStorage.getItem("qwen3-chat-conversations") || "[]"
+  );
+
+  if (Array.isArray(saved)) {
+    conversations = saved.filter(
+      c => c &&
+      typeof c.id === "string" &&
+      Array.isArray(c.messages)
+    );
+  }
 } catch {
-  history = [];
+  conversations = [];
 }
-renderHistory();
+
+if (conversations.length > 0) {
+  currentId = conversations[0].id;
+} else {
+  makeConversation();
+}
+
+renderAll();
 </script>
 </body>
 </html>
