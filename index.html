@@ -504,6 +504,25 @@ html,body{background:#fff;color:#212121;font-family:Arial,"Noto Sans JP","Hiragi
  .composer textarea{min-height:24px !important;height:24px;font-size:16px !important}
 }
 
+
+/* Model chooser: appears only when the existing model button is pressed. */
+.model-chooser-backdrop{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center;padding:18px}
+.model-chooser{width:min(460px,100%);background:#fff;color:#222;border:1px solid #e5e5e5;border-radius:18px;box-shadow:0 18px 60px rgba(0,0,0,.22);padding:22px;font-family:inherit}
+.model-chooser h2{font-size:19px;font-weight:650;margin:0 0 7px}
+.model-chooser .chooser-sub{font-size:13px;color:#666;line-height:1.6;margin:0 0 17px}
+.model-choice{display:flex;gap:12px;align-items:flex-start;border:1px solid #ddd;border-radius:13px;padding:13px;margin:10px 0;cursor:pointer;transition:border-color .15s,background .15s}
+.model-choice:has(input:checked){border-color:#555;background:#f7f7f7}
+.model-choice input{margin-top:4px;accent-color:#333}
+.model-choice strong{display:block;font-size:14px;margin-bottom:3px}
+.model-choice small{display:block;color:#666;font-size:12px;line-height:1.5}
+.model-chooser .chooser-warning{font-size:12px;line-height:1.6;color:#7a4d13;background:#fff8e9;border-radius:10px;padding:10px 12px;margin:13px 0}
+.model-chooser .chooser-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.model-chooser button{border:1px solid #d5d5d5;border-radius:10px;padding:9px 15px;background:#fff;color:#222;font:inherit;font-size:13px;cursor:pointer}
+.model-chooser button.primary{background:#222;color:#fff;border-color:#222}
+.model-chooser button:disabled{opacity:.5;cursor:not-allowed}
+.model-chooser .chooser-foot{font-size:11px;color:#777;margin-top:12px;line-height:1.5}
+@media(prefers-color-scheme:dark){html[data-theme="dark"] .model-chooser{background:#222;color:#f4f4f4;border-color:#444}html[data-theme="dark"] .model-choice{border-color:#555}html[data-theme="dark"] .model-choice:has(input:checked){background:#333;border-color:#aaa}html[data-theme="dark"] .model-choice small{color:#bbb}html[data-theme="dark"] .model-chooser button{background:#333;color:#eee;border-color:#555}html[data-theme="dark"] .model-chooser button.primary{background:#eee;color:#222}}
+
 </style>
 </head>
 <body>
@@ -553,7 +572,13 @@ html,body{background:#fff;color:#212121;font-family:Arial,"Noto Sans JP","Hiragi
 <script type="module">
 import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
 
-const MODEL = "onnx-community/Qwen3-4B-ONNX";
+const MODEL_OPTIONS = {
+  "0.6B": { id: "onnx-community/Qwen3-0.6B-ONNX", label: "Qwen3 0.6B", dtype: "q4f16", size: "約543MB（モデル本体の目安）" },
+  "4B": { id: "onnx-community/Qwen3-4B-ONNX", label: "Qwen3 4B", dtype: undefined, size: "約3.08GB（モデル本体の目安）" }
+};
+let selectedModelKey = localStorage.getItem("qwen3-selected-model") || "0.6B";
+if (!MODEL_OPTIONS[selectedModelKey]) selectedModelKey = "0.6B";
+let loadedModelKey = null;
 const $ = id => document.getElementById(id);
 let generator = null;
 let busy = false;
@@ -595,7 +620,7 @@ function makeWelcome(){
   return `<div class="welcome">
     <div class="welcome-mark">${markSvg()}</div>
     <h1>今日は何をしましょうか？</h1>
-    <p>Qwen3-4Bと自由に会話しましょう。<br>あなた専用のローカルAIアシスタントです。</p>
+    <p>Qwen3と自由に会話しましょう。<br>あなた専用のローカルAIアシスタントです。</p>
     <div class="suggestions">
       <button class="suggestion" data-prompt="Pythonを初心者向けに教えて">⌘　プログラミングを学ぶ</button>
       <button class="suggestion" data-prompt="面白い科学の雑学を教えて">✧　科学の雑学</button>
@@ -669,30 +694,76 @@ function renderSidebar(){
   history.forEach(chat=>addChatRow(chat,list));
 }
 function renderAll(){renderSidebar();renderMessages()}
-async function loadModel(){
-  if(generator||busy)return;
-  busy=true;$("loadModel").disabled=true;$("loadModel").textContent="読み込み中...";
-  setStatus("GPUを確認しています...");
+function closeModelChooser(){
+  const node=$("modelChooserBackdrop");
+  if(node)node.remove();
+}
+function openModelChooser(){
+  if(busy){toast("処理中はモデルを切り替えられません");return}
+  closeModelChooser();
+  const backdrop=document.createElement("div");backdrop.id="modelChooserBackdrop";backdrop.className="model-chooser-backdrop";
+  const dialog=document.createElement("section");dialog.className="model-chooser";dialog.setAttribute("role","dialog");dialog.setAttribute("aria-modal","true");dialog.setAttribute("aria-labelledby","modelChooserTitle");
+  const current=loadedModelKey?`現在使用中：Qwen3 ${loadedModelKey}`:"まだモデルは読み込まれていません";
+  dialog.innerHTML=`<h2 id="modelChooserTitle">使用するAIモデル</h2>
+    <p class="chooser-sub">${current}<br>初回はモデルデータをダウンロードします。次回以降はブラウザのキャッシュが残っていれば再利用できます。</p>
+    <label class="model-choice"><input type="radio" name="qwenModel" value="0.6B" ${selectedModelKey==="0.6B"?"checked":""}><span><strong>Qwen3 0.6B — 軽量・おすすめ</strong><small>モデル本体 約543MB。メモリ負担を抑えたい端末向け。4Bより回答能力は控えめです。</small></span></label>
+    <label class="model-choice"><input type="radio" name="qwenModel" value="4B" ${selectedModelKey==="4B"?"checked":""}><span><strong>Qwen3 4B — 高性能</strong><small>モデル本体 約3.08GB。より高いメモリ・GPU性能が必要です。Chromebookではクラッシュする可能性があります。</small></span></label>
+    <div class="chooser-warning">4BはLinux環境なしで、ChromeのWebGPUを使って動かします。ただし、端末のRAM/GPUメモリが足りない場合はブラウザが終了することがあります。ダウンロード容量と実行時に必要なメモリは同じではありません。</div>
+    <div class="chooser-actions"><button type="button" data-action="cancel">キャンセル</button><button type="button" class="primary" data-action="start">このモデルを読み込む</button></div>
+    <p class="chooser-foot">モデルの切り替え後も、以前のモデルのキャッシュが残っていれば再ダウンロードを省けます。ブラウザがキャッシュを削除した場合は再取得が必要です。</p>`;
+  backdrop.append(dialog);document.body.append(backdrop);
+  backdrop.addEventListener("click",e=>{if(e.target===backdrop)closeModelChooser()});
+  dialog.querySelector('[data-action="cancel"]').addEventListener("click",closeModelChooser);
+  dialog.querySelector('[data-action="start"]').addEventListener("click",()=>{
+    const chosen=dialog.querySelector('input[name="qwenModel"]:checked')?.value||"0.6B";
+    closeModelChooser();loadSelectedModel(chosen);
+  });
+}
+async function loadModel(){openModelChooser()}
+async function loadSelectedModel(modelKey){
+  if(busy)return;
+  if(!MODEL_OPTIONS[modelKey])throw new Error("未対応のモデルです");
+  if(generator&&loadedModelKey===modelKey){toast("このモデルはすでに読み込み済みです");return}
+  busy=true;selectedModelKey=modelKey;localStorage.setItem("qwen3-selected-model",modelKey);
+  const config=MODEL_OPTIONS[modelKey];
+  $("loadModel").disabled=true;$("loadModel").textContent="切り替え中...";
+  $("send").disabled=true;
+  setStatus(`Qwen3 ${modelKey} の準備をしています...`);
   try{
-    if(!navigator.gpu)throw new Error("このブラウザではWebGPUが利用できません。");
+    if(!navigator.gpu)throw new Error("このブラウザではWebGPUが利用できません。Chromeの対応状況を確認してください。");
     const adapter=await navigator.gpu.requestAdapter();
-    if(!adapter)throw new Error("GPUアダプターが見つかりません。");
+    if(!adapter)throw new Error("GPUアダプターが見つかりません。WebGPU対応端末が必要です。");
     if(navigator.storage?.persist)await navigator.storage.persist();
-    setStatus("Qwen3-4Bを読み込んでいます...");
-    generator=await pipeline("text-generation",MODEL,{
-      device:"webgpu",
-      progress_callback:p=>{
-        if(p.status==="progress"&&p.file){
-          const percent=p.progress?Math.round(p.progress):0;
-          setStatus("ダウンロード中："+p.file+" "+percent+"%");
-        }else if(p.status){setStatus("準備中："+p.status)}
-      }
-    });
-    setStatus("モデル読み込み完了！",true);$("send").disabled=false;$("loadModel").textContent="読み込み済み";
+    // Release the old model before allocating another one to reduce peak memory usage.
+    if(generator){
+      try{if(typeof generator.dispose==="function")await generator.dispose();}catch(e){console.warn("旧モデルの解放に失敗:",e)}
+      generator=null;loadedModelKey=null;
+      await new Promise(resolve=>setTimeout(resolve,250));
+    }
+    const memoryGB=Number(navigator.deviceMemory||0);
+    if(modelKey==="4B"){
+      setStatus(memoryGB&&memoryGB<=4?"注意：推定RAMが少ない端末です。4B読み込みでChromeが終了する可能性があります。":"Qwen3 4Bを読み込んでいます...");
+    }else setStatus("Qwen3 0.6Bを読み込んでいます...");
+    const options={device:"webgpu",progress_callback:p=>{
+      if(p.status==="progress"&&p.file){const percent=p.progress?Math.round(p.progress):0;setStatus(`Qwen3 ${modelKey} ダウンロード中：${p.file} ${percent}%`)}
+      else if(p.status)setStatus(`Qwen3 ${modelKey} 準備中：${p.status}`);
+    }};
+    // 0.6B explicitly uses the published q4f16 WebGPU variant. The 4B repo
+    // provides its own WebGPU INT4 optimized files, so let Transformers.js resolve them.
+    if(config.dtype)options.dtype=config.dtype;
+    generator=await pipeline("text-generation",config.id,options);
+    loadedModelKey=modelKey;
+    setStatus(`Qwen3 ${modelKey} 読み込み完了`,true);
+    $("send").disabled=false;$("loadModel").textContent=`Qwen3 ${modelKey} ▾`;
   }catch(error){
-    generator=null;setStatus("読み込みエラー："+error.message);
-    $("loadModel").disabled=false;$("loadModel").textContent="再読み込み";
-  }finally{busy=false}
+    generator=null;loadedModelKey=null;
+    setStatus("読み込みエラー："+error.message);
+    $("loadModel").disabled=false;$("loadModel").textContent="モデルを選択";
+    toast("モデルを読み込めませんでした。軽量な0.6Bを試すか、他のタブを閉じてください。");
+  }finally{
+    busy=false;$("loadModel").disabled=false;
+    if(!generator)$("loadModel").textContent="モデルを読み込む";
+  }
 }
 async function sendMessage(){
   const text=$("prompt").value.trim();
@@ -709,9 +780,11 @@ async function sendMessage(){
   try{
     const messages=[
       {role:"system",content:(JSON.parse(localStorage.getItem("qwen3-app-settings")||"{}").systemPrompt)||"あなたは親切で正確な日本語AIアシスタントです。不明なことは不明と伝えてください。"},
-      ...chat.messages.slice(-10).map(item=>({role:item.role,content:item.content}))
+      ...chat.messages.slice(loadedModelKey==="4B"?-4:-8).map(item=>({role:item.role,content:loadedModelKey==="4B"?String(item.content).slice(-1400):item.content}))
     ];
-    const result=await generator(messages,{max_new_tokens:Math.max(64,Math.min(2048,Number(JSON.parse(localStorage.getItem("qwen3-app-settings")||"{}").maxTokens)||512)),temperature:Math.max(0,Math.min(1.5,Number(JSON.parse(localStorage.getItem("qwen3-app-settings")||"{}").temperature??0.7))),do_sample:true});
+    const requestedTokens=Math.max(64,Math.min(2048,Number(JSON.parse(localStorage.getItem("qwen3-app-settings")||"{}").maxTokens)||512));
+    const safeTokenLimit=loadedModelKey==="4B"?Math.min(requestedTokens,160):Math.min(requestedTokens,384);
+    const result=await generator(messages,{max_new_tokens:safeTokenLimit,temperature:Math.max(0,Math.min(1.5,Number(JSON.parse(localStorage.getItem("qwen3-app-settings")||"{}").temperature??0.7))),do_sample:true});
     let answer=result[0].generated_text;
     if(Array.isArray(answer))answer=answer[answer.length-1]?.content??"";
     answer=String(answer).replace(/<think>[\s\S]*?<\/think>/g,"").trim();
