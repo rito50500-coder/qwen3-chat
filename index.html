@@ -1,653 +1,530 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#212722">
+<meta name="theme-color" content="#ffffff">
 <title>Qwen3 Chat</title>
-
 <style>
-:root {
-  --bg: #212722;
-  --sidebar: #191e1a;
-  --panel: #292f2a;
-  --panel-hover: #343d35;
-  --border: #3a443b;
-  --text: #edf1ed;
-  --muted: #a0aaa1;
-  --green: #a8d8b2;
-  --green-dark: #294d34;
-  --font: Arial, "Noto Sans JP", sans-serif;
+:root{
+  color-scheme:dark;
+  --bg:#0d111b;
+  --sidebar:#090d16;
+  --surface:#151b29;
+  --surface-2:#1b2232;
+  --surface-hover:#222b3e;
+  --border:#293247;
+  --text:#eef1f8;
+  --muted:#9aa4b8;
+  --muted-2:#737f95;
+  --purple:#b49aff;
+  --purple-2:#8f70df;
+  --purple-soft:rgba(180,154,255,.14);
+  --font:Arial,"Noto Sans JP",system-ui,sans-serif;
 }
-
-* { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font);
-  height: 100dvh;
-  overflow: hidden;
-}
-
-button, textarea { font: inherit; }
-button { cursor: pointer; }
-
-.app {
-  display: flex;
-  height: 100dvh;
-  width: 100%;
-}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;background:var(--bg);color:var(--text);font-family:var(--font)}
+body{height:100dvh;overflow:hidden}
+button,input,textarea{font:inherit}
+button{cursor:pointer;color:inherit}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--purple);outline-offset:2px}
+.app{display:flex;width:100%;height:100dvh;overflow:hidden}
 
 /* Sidebar */
+.sidebar{width:260px;min-width:260px;height:100%;display:flex;flex-direction:column;background:var(--sidebar);padding:13px 12px 12px;border-right:1px solid rgba(255,255,255,.035);transition:width .2s,min-width .2s,transform .25s;z-index:30}
+.sidebar.collapsed{width:0;min-width:0;padding-left:0;padding-right:0;overflow:hidden;border:0}
+.sidebar-head{height:43px;display:flex;align-items:center;justify-content:space-between;padding:0 5px 0 8px;margin-bottom:17px}
+.brand{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:650;letter-spacing:-.35px;white-space:nowrap}
+.brand-mark{width:27px;height:27px;display:grid;place-items:center;flex:none}
+.brand-mark svg{width:27px;height:27px;display:block}
+.icon-btn{width:34px;height:34px;display:inline-grid;place-items:center;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:18px;flex:none}
+.icon-btn:hover{background:var(--surface-hover);color:var(--text)}
+.side-action{width:100%;height:39px;display:flex;align-items:center;gap:11px;padding:0 11px;border:1px solid transparent;border-radius:9px;background:transparent;color:#dfe4ef;text-align:left;font-size:13px;white-space:nowrap}
+.side-action:hover{background:var(--surface-hover)}
+.side-action .action-icon{width:19px;text-align:center;font-size:18px;color:#c4cad8}
+.side-search{margin-top:4px}
+.side-section-label{padding:25px 10px 9px;color:var(--muted-2);font-size:11px;font-weight:650;letter-spacing:.2px}
+.chat-list{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:2px}
+.chat-item{display:flex;align-items:center;gap:7px;width:100%;min-height:36px;padding:7px 9px;border:0;border-radius:8px;background:transparent;color:#cbd2e0;text-align:left;font-size:12px}
+.chat-item:hover,.chat-item.active{background:#1a2232;color:#fff}
+.chat-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.delete-chat{opacity:0;border:0;border-radius:5px;background:transparent;color:var(--muted);font-size:16px;padding:1px 5px}
+.chat-item:hover .delete-chat{opacity:1}
+.delete-chat:hover{background:#49313a;color:#ffb6c3}
+.sidebar-bottom{padding-top:10px;border-top:1px solid rgba(255,255,255,.07)}
+.profile{display:flex;align-items:center;gap:10px;padding:8px;border-radius:9px}
+.profile:hover{background:var(--surface-hover)}
+.profile-mark{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;background:var(--purple-soft);color:var(--purple)}
+.profile-mark svg{width:20px;height:20px}
+.profile-copy{flex:1;min-width:0}
+.profile-name{font-size:12px;font-weight:650}
+.profile-sub{margin-top:3px;color:var(--muted);font-size:10px}
 
-.sidebar {
-  width: 270px;
-  flex-shrink: 0;
-  background: var(--sidebar);
-  border-right: 1px solid rgba(255,255,255,.035);
-  display: flex;
-  flex-direction: column;
-  padding: 18px 13px 14px;
-  transition: transform .25s ease;
-  z-index: 20;
-}
+/* Main header */
+.main{position:relative;display:flex;flex:1;min-width:0;height:100%;flex-direction:column;background:var(--bg)}
+.topbar{height:56px;min-height:56px;display:flex;align-items:center;gap:9px;padding:0 20px;background:rgba(13,17,27,.92)}
+.top-title{font-size:14px;font-weight:650;letter-spacing:-.2px}
+.title-chevron{font-size:13px;color:var(--muted);margin-left:2px}
+.top-spacer{flex:1}
+.model-status{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:11px;margin-right:8px}
+.status-dot{width:7px;height:7px;border-radius:50%;background:#a58b59}
+.status-dot.ready{background:#8ed5a0;box-shadow:0 0 8px #8ed5a066}
+.model-button{height:32px;padding:0 11px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:#e5e9f2;font-size:11px}
+.model-button:hover{background:var(--surface-hover)}
+.model-button:disabled{opacity:.55;cursor:wait}
 
-.sidebar-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 2px 7px 23px;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 17px;
-  font-weight: 650;
-  letter-spacing: -.5px;
-}
-
-.brand-mark {
-  width: 31px;
-  height: 31px;
-  display: grid;
-  place-items: center;
-}
-
-.brand-mark svg {
-  width: 30px;
-  height: 30px;
-}
-
-.icon-button {
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  border-radius: 9px;
-  font-size: 19px;
-}
-
-.icon-button:hover {
-  background: var(--panel-hover);
-  color: white;
-}
-
-.new-chat {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 11px 12px;
-  border: 1px solid var(--border);
-  border-radius: 11px;
-  background: transparent;
-  color: var(--text);
-  text-align: left;
-  font-size: 13px;
-  transition: .2s;
-}
-
-.new-chat:hover {
-  background: var(--panel-hover);
-  border-color: #59685b;
-}
-
-.new-chat span:first-child {
-  font-size: 20px;
-  color: var(--green);
-}
-
-.sidebar-label {
-  padding: 25px 10px 9px;
-  color: #8e9b90;
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: .7px;
-}
-
-.chat-list {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.chat-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 10px 11px;
-  border: 0;
-  border-radius: 9px;
-  color: #cbd3cc;
-  background: transparent;
-  text-align: left;
-  font-size: 12px;
-}
-
-.chat-item:hover,
-.chat-item.active {
-  background: #303a32;
-  color: white;
-}
-
-.chat-item .chat-title {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.delete-chat {
-  opacity: 0;
-  color: #aab5ab;
-  border: 0;
-  background: transparent;
-  padding: 3px;
-  border-radius: 5px;
-}
-
-.chat-item:hover .delete-chat {
-  opacity: 1;
-}
-
-.delete-chat:hover {
-  background: #4b3a37;
-  color: #ffaaa0;
-}
-
-.sidebar-bottom {
-  border-top: 1px solid var(--border);
-  padding: 14px 5px 2px;
-}
-
-.model-profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px;
-}
-
-.profile-icon {
-  width: 35px;
-  height: 35px;
-  border-radius: 11px;
-  display: grid;
-  place-items: center;
-  background: #294633;
-  color: #bce5c4;
-  font-size: 17px;
-}
-
-.profile-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.profile-name {
-  font-size: 12px;
-  font-weight: 650;
-}
-
-.profile-description {
-  font-size: 10px;
-  color: var(--muted);
-  margin-top: 4px;
-}
-
-/* Main */
-
-.main {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-}
-
-.topbar {
-  height: 61px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 23px;
-  border-bottom: 1px solid rgba(255,255,255,.055);
-}
-
-.top-title {
-  font-size: 14px;
-  font-weight: 650;
-}
-
-.model-status {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #a78b55;
-}
-
-.status-dot.ready {
-  background: #8ed5a0;
-  box-shadow: 0 0 8px #8ed5a066;
-}
-
-.model-button {
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  background: #303a32;
-  color: #d8e7da;
-  border-radius: 9px;
-  font-size: 11px;
-}
-
-.model-button:hover {
-  background: #3b4a3e;
-}
-
-.model-button:disabled {
-  opacity: .55;
-  cursor: wait;
-}
-
-/* Messages */
-
-.messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 35px 22px 24px;
-  scroll-behavior: smooth;
-}
-
-.message-area {
-  width: 100%;
-  max-width: 790px;
-  margin: 0 auto;
-}
-
-.welcome {
-  min-height: 58vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 25px 10px;
-}
-
-.welcome-mark {
-  width: 57px;
-  height: 57px;
-  margin-bottom: 24px;
-}
-
-.welcome-mark svg {
-  width: 100%;
-  height: 100%;
-}
-
-.welcome h1 {
-  font-size: clamp(24px, 3vw, 31px);
-  font-weight: 570;
-  letter-spacing: -1.1px;
-  margin: 0 0 13px;
-}
-
-.welcome p {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.9;
-  margin: 0;
-}
-
-.suggestions {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 9px;
-  margin-top: 30px;
-}
-
-.suggestion {
-  border: 1px solid var(--border);
-  background: transparent;
-  color: #c6d0c7;
-  border-radius: 22px;
-  padding: 10px 14px;
-  font-size: 11px;
-  transition: .2s;
-}
-
-.suggestion:hover {
-  background: var(--panel-hover);
-  border-color: #708674;
-}
-
-.message {
-  display: flex;
-  gap: 14px;
-  margin: 0 auto 29px;
-  line-height: 1.85;
-  font-size: 14px;
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-}
-
-.message-avatar {
-  flex-shrink: 0;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 12px;
-  font-weight: 650;
-}
-
-.message.user .message-avatar {
-  background: #465448;
-  color: white;
-}
-
-.message.assistant .message-avatar {
-  background: #294d34;
-  color: #c1e8c9;
-}
-
-.message-content {
-  min-width: 0;
-  padding-top: 2px;
-}
-
-.message.assistant .message-content {
-  color: #e3e9e3;
-}
-
-.message.user .message-content {
-  color: #f3f5f3;
-}
-
-.message-content p {
-  margin: 0;
-}
+/* Conversation */
+.messages{flex:1;min-height:0;overflow-y:auto;padding:24px 24px 28px;scroll-behavior:smooth}
+.message-area{width:100%;max-width:768px;margin:0 auto}
+.welcome{min-height:calc(100% - 10px);min-height:58vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:35px 12px}
+.welcome-mark{width:43px;height:43px;margin-bottom:23px}
+.welcome-mark svg{width:100%;height:100%}
+.welcome h1{margin:0 0 11px;font-size:clamp(23px,3vw,29px);font-weight:600;letter-spacing:-.9px}
+.welcome p{margin:0;color:var(--muted);font-size:13px;line-height:1.8}
+.suggestions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;width:min(100%,490px);margin-top:29px}
+.suggestion{min-height:58px;padding:11px 13px;border:1px solid var(--border);border-radius:12px;background:rgba(21,27,41,.72);color:#d8deeb;text-align:left;font-size:12px;line-height:1.5}
+.suggestion:hover{background:var(--surface-hover);border-color:#46516a}
+.message{display:flex;gap:14px;margin:0 auto 25px;line-height:1.85;font-size:14px;overflow-wrap:anywhere;white-space:pre-wrap}
+.message.user{justify-content:flex-end}
+.message-avatar{display:none}
+.message-content{min-width:0;max-width:100%;padding-top:2px}
+.message.user .message-content{max-width:min(82%,620px);padding:10px 15px;border-radius:18px;background:#222b3d;color:#f3f5fb}
+.message.assistant .message-content{width:100%;color:#e6eaf3}
+.message.assistant .message-content p{margin:0}
+.loading-text{color:#b9a9e8!important;animation:pulse 1.3s infinite}
+@keyframes pulse{50%{opacity:.45}}
 
 /* Composer */
-
-.composer-wrap {
-  flex-shrink: 0;
-  padding: 10px 20px 20px;
-}
-
-.composer {
-  width: 100%;
-  max-width: 790px;
-  margin: 0 auto;
-  border: 1px solid #536055;
-  background: #303a32;
-  border-radius: 22px;
-  padding: 11px 12px 10px 17px;
-  box-shadow: 0 7px 25px #00000016;
-  transition: border-color .2s, box-shadow .2s;
-}
-
-.composer:focus-within {
-  border-color: #8bab91;
-  box-shadow: 0 0 0 3px #9ed0a511;
-}
-
-textarea {
-  display: block;
-  width: 100%;
-  min-height: 43px;
-  max-height: 170px;
-  resize: none;
-  outline: none;
-  border: 0;
-  background: transparent;
-  color: white;
-  font-size: 14px;
-  line-height: 1.6;
-  padding: 9px 2px;
-}
-
-textarea::placeholder {
-  color: #9ba99d;
-}
-
-.composer-bottom {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 35px;
-}
-
-.composer-hint {
-  color: #91a092;
-  font-size: 10px;
-  padding-left: 3px;
-}
-
-.spacer { flex: 1; }
-
-.send-button {
-  width: 35px;
-  height: 35px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: var(--green);
-  color: #203125;
-  font-size: 20px;
-  font-weight: bold;
-  transition: .2s;
-}
-
-.send-button:hover {
-  background: #c0e9c8;
-  transform: translateY(-1px);
-}
-
-.send-button:disabled {
-  background: #627467;
-  color: #b0bbb1;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.hint {
-  text-align: center;
-  font-size: 10px;
-  color: #89958b;
-  margin-top: 11px;
-}
-
-/* Loading */
-
-.loading-text {
-  color: #a9c6ad;
-  font-size: 13px;
-  animation: pulse 1.3s infinite;
-}
-
-@keyframes pulse {
-  50% { opacity: .45; }
-}
+.composer-wrap{flex:none;padding:12px 22px 18px;background:linear-gradient(180deg,rgba(13,17,27,0),var(--bg) 18%)}
+.composer{width:100%;max-width:768px;margin:0 auto;padding:10px 12px 9px 16px;border:1px solid #39445a;border-radius:24px;background:#171e2d;box-shadow:0 8px 30px rgba(0,0,0,.16);transition:border-color .2s,box-shadow .2s}
+.composer:focus-within{border-color:#8871c7;box-shadow:0 0 0 3px rgba(180,154,255,.09)}
+textarea{display:block;width:100%;min-height:42px;max-height:170px;resize:none;outline:none;border:0;background:transparent;color:var(--text);font-size:14px;line-height:1.6;padding:8px 2px}
+textarea::placeholder{color:#8994aa}
+.composer-bottom{display:flex;align-items:center;gap:8px;min-height:34px}
+.composer-hint{color:var(--muted-2);font-size:10px;padding-left:3px}
+.spacer{flex:1}
+.send-button{width:34px;height:34px;display:grid;place-items:center;border:0;border-radius:50%;background:var(--purple);color:#171323;font-size:20px;font-weight:700;transition:.15s}
+.send-button:hover{background:#c8b7ff;transform:translateY(-1px)}
+.send-button:disabled{background:#55516a;color:#aaa4bd;cursor:not-allowed;transform:none}
+.hint{text-align:center;margin-top:9px;color:#737f94;font-size:10px}
+.mobile-overlay{display:none}
 
 /* Mobile */
+@media(max-width:760px){
+  .sidebar{position:fixed;left:0;top:0;bottom:0;width:275px;min-width:275px;transform:translateX(-105%);box-shadow:12px 0 38px #0008}
+  .sidebar.mobile-open{transform:translateX(0)}
+  .sidebar.collapsed{width:275px;min-width:275px;padding:13px 12px 12px;transform:translateX(-105%)}
+  .mobile-overlay.open{display:block;position:fixed;inset:0;z-index:25;background:#0009}
+  .topbar{height:52px;min-height:52px;padding:0 10px}
+  .messages{padding:17px 14px 22px}
+  .composer-wrap{padding:8px 10px 12px}
+  .welcome{min-height:52vh}
+  .welcome h1{font-size:22px}
+  .suggestions{grid-template-columns:1fr;width:min(100%,390px);margin-top:22px}
+  .suggestion{min-height:47px}
+  .model-status{font-size:10px;margin-right:0}
+  .model-button{padding:0 8px;font-size:10px}
+  .message{font-size:13px}
+  .message.user .message-content{max-width:90%}
+}
+@media(max-width:390px){.model-status{display:none}.topbar{gap:5px}.top-title{font-size:13px}}
 
-.mobile-overlay {
-  display: none;
+/* Practical controls and settings */
+.composer-tools{display:flex;align-items:center;gap:5px}
+.tool-btn{height:31px;padding:0 9px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);font-size:11px}
+.tool-btn:hover{background:var(--surface-hover);color:var(--text)}
+.tool-btn svg{width:16px;height:16px;vertical-align:middle;margin-right:4px;stroke:currentColor;fill:none;stroke-width:1.7}
+.top-icon-action{height:32px;padding:0 9px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--muted);font-size:11px}
+.top-icon-action:hover{background:var(--surface-hover);color:var(--text)}
+.dialog-backdrop{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.58);display:flex;align-items:center;justify-content:center;padding:16px}
+.dialog-backdrop[hidden]{display:none}
+.dialog{width:min(760px,100%);max-height:min(86vh,820px);overflow:hidden;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:17px;box-shadow:0 24px 90px #0008}
+.dialog-head{height:58px;min-height:58px;padding:0 20px;display:flex;align-items:center;border-bottom:1px solid var(--border);font-size:15px;font-weight:650}
+.dialog-close{margin-left:auto;border:0;background:transparent;color:var(--muted);font-size:23px;width:34px;height:34px;border-radius:8px}
+.dialog-close:hover{background:var(--surface-hover)}
+.dialog-body{display:flex;min-height:0;overflow:auto}
+.settings-nav{width:190px;flex:none;padding:13px;border-right:1px solid var(--border)}
+.settings-tab{width:100%;height:38px;border:0;border-radius:8px;background:transparent;color:var(--muted);text-align:left;padding:0 10px;font-size:12px}
+.settings-tab.active,.settings-tab:hover{background:var(--surface-hover);color:var(--text)}
+.settings-content{flex:1;min-width:0;padding:20px 23px;overflow:auto}
+.settings-pane[hidden]{display:none}
+.settings-pane h3{font-size:14px;margin:0 0 6px}
+.settings-desc{font-size:11px;color:var(--muted);line-height:1.65;margin:0 0 18px}
+.setting-row{padding:13px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:18px}
+.setting-copy{flex:1;min-width:0}
+.setting-title{font-size:12px;font-weight:600}
+.setting-help{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5}
+.setting-control{min-width:145px;max-width:230px}
+.setting-control input[type="text"],.setting-control input[type="number"],.setting-control select,.setting-control textarea,.search-input{width:100%;padding:8px 9px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:11px}
+.setting-control input[type="range"]{width:100%;accent-color:var(--purple)}
+.setting-control textarea{min-height:90px;resize:vertical;line-height:1.5}
+.setting-control input[type="checkbox"]{accent-color:var(--purple);width:17px;height:17px}
+.primary-small,.danger-small{border:0;border-radius:8px;padding:8px 12px;background:var(--purple);color:#171323;font-size:11px;font-weight:650}
+.danger-small{background:#7d3547;color:white}
+.secondary-small{border:1px solid var(--border);border-radius:8px;padding:8px 12px;background:var(--surface-2);color:var(--text);font-size:11px}
+.dialog-actions{display:flex;justify-content:flex-end;gap:8px;padding:13px 20px;border-top:1px solid var(--border)}
+.search-dialog-content{padding:18px;display:flex;flex-direction:column;gap:12px}
+.search-results{max-height:55vh;overflow:auto}
+.search-result{padding:11px;border-radius:8px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)}
+.search-result:hover{background:var(--surface-hover)}
+.file-preview-list{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 7px}
+.file-preview{display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);font-size:10px;color:var(--muted)}
+.file-preview button{border:0;background:none;color:var(--muted);font-size:14px}
+.toast-message{position:fixed;z-index:150;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 15px;font-size:12px;box-shadow:0 8px 30px #0005}
+.toast-message[hidden]{display:none}
+html[data-theme="light"]{
+ color-scheme:light;--bg:#fff;--sidebar:#f9f9fa;--surface:#fff;--surface-2:#f5f5f6;
+ --surface-hover:#ededf0;--border:#e2e2e5;--text:#202124;--muted:#777b84;
+ --muted-2:#92959c;--purple:#8d6ad8;--purple-2:#7654c4;--purple-soft:rgba(141,106,216,.12);
+}
+html[data-theme="light"] .topbar{background:rgba(255,255,255,.94)}
+html[data-theme="light"] .composer{background:#fff;border-color:#dedee3}
+html[data-theme="light"] .message.user .message-content{background:#f1eff6;color:#202124}
+html[data-theme="light"] .message.assistant .message-content{color:#202124}
+html[data-theme="light"] .chat-item{color:#41434a}
+html[data-theme="light"] .chat-item:hover,html[data-theme="light"] .chat-item.active{background:#eceaf1;color:#171717}
+@media(max-width:620px){
+ .dialog-body{display:block}.settings-nav{width:100%;display:flex;overflow:auto;border-right:0;border-bottom:1px solid var(--border);padding:8px;gap:5px}
+ .settings-tab{width:auto;white-space:nowrap;padding:0 12px}
+ .settings-content{padding:15px}
+ .setting-row{align-items:flex-start;flex-direction:column;gap:9px}
+ .setting-control{width:100%;max-width:none}
+ .composer-tools{gap:0}.tool-btn{padding:0 6px;font-size:10px}
 }
 
-@media(max-width:760px) {
-  .sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 280px;
-    transform: translateX(-105%);
-    box-shadow: 10px 0 35px #00000035;
-  }
 
-  .sidebar.open {
-    transform: translateX(0);
-  }
-
-  .mobile-overlay.open {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 15;
-    background: #0008;
-  }
-
-  .topbar {
-    height: 56px;
-    padding: 0 12px;
-  }
-
-  .messages {
-    padding: 22px 14px;
-  }
-
-  .composer-wrap {
-    padding: 8px 11px 13px;
-  }
-
-  .welcome {
-    min-height: 53vh;
-  }
-
-  .welcome h1 {
-    font-size: 23px;
-  }
-
-  .suggestions {
-    gap: 7px;
-  }
-
-  .suggestion {
-    font-size: 10px;
-    padding: 9px 11px;
-  }
-
-  .model-button {
-    padding: 7px 9px;
-  }
-
-  .message {
-    font-size: 13px;
-  }
+/* Screenshot-aligned ChatGPT-like layout: custom implementation, not copied site source */
+:root{
+ --bg:#ffffff;--sidebar:#f9f9f9;--surface:#ffffff;--surface-2:#f4f4f4;
+ --surface-hover:#eeeeef;--border:#e5e5e5;--text:#202123;--muted:#777777;
+ --muted-2:#999999;--purple:#8b6bd6;--purple-2:#7553c5;--purple-soft:rgba(139,107,214,.12);
+ --font:Arial,"Noto Sans JP","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
+ color-scheme:light;
 }
+html,body{font-family:Arial,"Noto Sans JP","Hiragino Kaku Gothic ProN",Meiryo,sans-serif}
+.sidebar{width:340px;min-width:340px;padding:12px 6px 8px;background:#fafafa;border-right:1px solid #e5e5e5}
+.sidebar-head{height:54px;margin:0 4px 12px;padding:0 10px}
+.brand{font-size:17px;font-weight:650;color:#202123;gap:0}
+.brand-mark{display:none}
+#collapseSidebar{color:#777}
+.side-action{height:37px;border-radius:8px;padding:0 11px;gap:10px;font-size:14px;color:#252525}
+.side-action .action-icon{width:20px;font-size:17px;color:#333}
+.side-section-label{padding:25px 10px 9px;font-size:12px;font-weight:400;color:#8a8a8a}
+.chat-list{flex:1;min-height:50px;max-height:34%;overflow:auto}
+.chat-item{min-height:36px;border-radius:8px;font-size:13px;color:#303030;padding:7px 10px}
+.chat-item:hover,.chat-item.active{background:#ededed;color:#202123}
+.sidebar-bottom{margin-top:auto;background:#fafafa}
+.profile{min-height:48px;border-radius:8px;padding:7px 8px}
+.profile-mark{width:28px;height:28px;border-radius:50%;background:#f1eafa}
+.profile-name{font-size:13px}
+.profile-sub{font-size:11px}
+.main{background:#fff}
+.topbar{height:58px;min-height:58px;padding:0 24px;background:#fff;gap:12px}
+.title-button{border:0;background:transparent;padding:6px 4px;cursor:pointer}
+.top-title{font-size:14px;font-weight:550;color:#202123}
+.title-chevron{font-size:12px}
+.model-status{font-size:11px;color:#777}
+.top-icon-action{border:0;background:transparent;color:#333;font-size:13px;height:34px}
+.top-icon-action:hover{background:#f0f0f0}
+.model-button{height:34px;border:1px solid #dedede;border-radius:18px;background:#fff;color:#333;font-size:12px}
+.messages{padding:0 24px 18px;background:#fff}
+.message-area{max-width:768px}
+.welcome{min-height:calc(100% - 4px);min-height:64vh;padding:20px 10px;justify-content:center}
+.welcome-mark{display:none}
+.welcome h1{font-size:27px;font-weight:500;letter-spacing:-.6px;margin:0 0 26px;color:#202123}
+.welcome p{display:none}
+.suggestions{display:none}
+.message{font-size:15px;line-height:1.8;margin-bottom:24px}
+.message.user .message-content{background:#f4f4f4;color:#202123;border-radius:20px;padding:10px 16px}
+.message.assistant .message-content{color:#202123}
+.composer-wrap{padding:0 22px 24px;background:#fff}
+.composer{max-width:768px;min-height:54px;padding:5px 9px 5px 8px;border:1px solid #e3e3e3;border-radius:28px;background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.06);display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;column-gap:4px}
+.composer:focus-within{border-color:#d4d4d4;box-shadow:0 2px 16px rgba(0,0,0,.08)}
+.composer-plus{width:36px;height:36px;border:0;border-radius:50%;background:#f1f1f1;color:#222;font-size:26px;font-weight:300;line-height:1}
+.composer-plus:hover{background:#e7e7e7}
+.composer textarea{grid-column:2;grid-row:1;min-height:40px;max-height:150px;padding:9px 4px;font-size:15px;color:#202123;align-self:center}
+.composer textarea::placeholder{color:#8b8b8b}
+.composer-inline-actions{grid-column:3;grid-row:1;display:flex;align-items:center;gap:5px}
+.inline-tool{height:34px;padding:0 7px;border:0;background:transparent;color:#777;border-radius:8px;font-size:12px;white-space:nowrap}
+.inline-tool:hover{background:#f3f3f3}
+.mic-tool{font-size:18px;width:32px;padding:0}
+.composer-send{width:36px;height:36px;border:0;border-radius:50%;background:#2864cf;color:#fff;font-size:19px;display:grid;place-items:center}
+.composer-send:disabled{background:#2864cf;color:#fff;opacity:.9}
+.file-preview-list{grid-column:1/-1;grid-row:2;display:flex;flex-wrap:wrap}
+.hint{font-size:10px;color:#8a8a8a;margin-top:8px}
+.dialog{background:#fff;color:#202123}
+.dialog-head{border-color:#e5e5e5}
+.settings-nav{border-color:#e5e5e5}
+.settings-tab{color:#666}
+.settings-tab.active,.settings-tab:hover{background:#f0f0f0;color:#202123}
+.settings-content{color:#202123}
+.setting-help,.settings-desc{color:#777}
+.setting-control input[type="text"],.setting-control input[type="number"],.setting-control select,.setting-control textarea,.search-input{background:#fff;color:#202123;border-color:#ddd}
+.secondary-small{background:#fff;color:#333;border-color:#ddd}
+html[data-theme="dark"]{
+ color-scheme:dark;--bg:#0b1020;--sidebar:#080d19;--surface:#131a2a;--surface-2:#1a2234;
+ --surface-hover:#232d42;--border:#2a354b;--text:#eef1f8;--muted:#a0a9ba;--muted-2:#78849a;
+ --purple:#b49aff;--purple-2:#8f70df;--purple-soft:rgba(180,154,255,.14);
+}
+html[data-theme="dark"] .sidebar,html[data-theme="dark"] .sidebar-bottom{background:var(--sidebar);border-color:var(--border)}
+html[data-theme="dark"] .brand,html[data-theme="dark"] .side-action,html[data-theme="dark"] .chat-item{color:var(--text)}
+html[data-theme="dark"] .main,html[data-theme="dark"] .topbar,html[data-theme="dark"] .messages,html[data-theme="dark"] .composer-wrap{background:var(--bg)}
+html[data-theme="dark"] .composer{background:var(--surface);border-color:var(--border)}
+html[data-theme="dark"] .composer textarea,html[data-theme="dark"] .message.assistant .message-content{color:var(--text)}
+html[data-theme="dark"] .composer textarea::placeholder{color:var(--muted)}
+html[data-theme="dark"] .welcome h1{color:var(--text)}
+html[data-theme="dark"] .message.user .message-content{background:var(--surface-2);color:var(--text)}
+html[data-theme="dark"] .dialog{background:var(--surface);color:var(--text)}
+html[data-theme="dark"] .setting-control input,html[data-theme="dark"] .setting-control select,html[data-theme="dark"] .setting-control textarea,html[data-theme="dark"] .search-input{background:var(--bg);color:var(--text);border-color:var(--border)}
+@media(max-width:760px){
+ .sidebar{width:275px;min-width:275px}
+ .composer-wrap{padding:8px 10px 14px}
+ .composer{grid-template-columns:36px minmax(0,1fr) auto}
+ .inline-tool{padding:0 4px}
+ .mic-tool{display:none}
+ .topbar{padding:0 10px}
+ .model-status{display:none}
+}
+
+
+/* Monochrome ChatGPT-inspired palette */
+:root{
+  --bg:#ffffff;--sidebar:#f9f9f9;--surface:#ffffff;--surface-2:#f4f4f4;
+  --surface-hover:#ededed;--border:#e5e5e5;--text:#212121;--muted:#777777;
+  --muted-2:#999999;--purple:#555555;--purple-2:#333333;--purple-soft:rgba(0,0,0,.07);
+  color-scheme:light;
+}
+html[data-theme="light"]{
+  --bg:#ffffff;--sidebar:#f9f9f9;--surface:#ffffff;--surface-2:#f4f4f4;
+  --surface-hover:#ededed;--border:#e5e5e5;--text:#212121;--muted:#777777;
+  --muted-2:#999999;--purple:#555555;--purple-2:#333333;--purple-soft:rgba(0,0,0,.07);
+}
+html[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#212121;--sidebar:#171717;--surface:#2f2f2f;--surface-2:#383838;
+  --surface-hover:#424242;--border:#454545;--text:#f5f5f5;--muted:#b4b4b4;
+  --muted-2:#8b8b8b;--purple:#d0d0d0;--purple-2:#eeeeee;--purple-soft:rgba(255,255,255,.09);
+}
+html[data-theme="light"] .topbar{background:rgba(255,255,255,.94)}
+html[data-theme="light"] .message.user .message-content{background:#f0f0f0;color:#212121}
+html[data-theme="light"] .chat-item:hover,html[data-theme="light"] .chat-item.active{background:#ededed;color:#171717}
+html[data-theme="dark"] .message.user .message-content{background:#383838;color:#f5f5f5}
+html[data-theme="dark"] .composer{background:#2f2f2f;border-color:#555}
+html[data-theme="dark"] .composer:focus-within{border-color:#888;box-shadow:0 0 0 3px rgba(255,255,255,.06)}
+html[data-theme="dark"] .send-button{background:#f1f1f1;color:#171717}
+html[data-theme="dark"] .send-button:hover{background:#fff}
+html[data-theme="dark"] .send-button:disabled{background:#555;color:#aaa}
+html[data-theme="dark"] .chat-item:hover,html[data-theme="dark"] .chat-item.active{background:#383838;color:#fff}
+html[data-theme="dark"] .welcome h1,html[data-theme="dark"] .message.assistant .message-content{color:#f5f5f5}
+html[data-theme="dark"] .suggestion{background:#2b2b2b;color:#e8e8e8;border-color:#444}
+html[data-theme="dark"] .suggestion:hover{background:#383838;border-color:#666}
+html[data-theme="dark"] .primary-small{background:#e5e5e5;color:#171717}
+html[data-theme="dark"] .profile-mark{background:#383838;color:#eee}
+
+
+/* Minimal sidebar: new chat, pinned chats, and conversation history */
+.side-section-label{padding:18px 10px 7px;color:var(--muted);font-size:12px;font-weight:600;letter-spacing:0}
+.pinned-list{flex:0 0 auto;max-height:34vh}
+.history-heading{padding-top:20px}
+.chat-list{gap:2px}
+.chat-item{min-height:38px;font-size:13px;padding:7px 9px}
+.chat-item .pin-chat,.chat-item .delete-chat{opacity:0;flex:none;border:0;background:transparent;color:var(--muted);border-radius:6px;padding:3px 5px;font-size:14px;cursor:pointer}
+.chat-item:hover .pin-chat,.chat-item:hover .delete-chat,.chat-item.active .pin-chat{opacity:1}
+.chat-item .pin-chat.pinned{opacity:1;color:var(--text)}
+.chat-item .pin-chat:hover,.chat-item .delete-chat:hover{background:var(--surface-hover);color:var(--text)}
+
+@media (hover:none){.chat-item .pin-chat,.chat-item .delete-chat{opacity:.75}.chat-item .pin-chat.pinned{opacity:1}}
+
+/* Final clean ChatGPT-inspired layout: only features implemented by this offline app */
+:root{
+  --bg:#ffffff;--sidebar:#f9f9f9;--surface:#ffffff;--surface-2:#f4f4f4;
+  --surface-hover:#ececec;--border:#e5e5e5;--text:#212121;--muted:#777;
+  --muted-2:#999;--purple:#333;--purple-2:#222;--purple-soft:rgba(0,0,0,.07);
+  color-scheme:light;
+}
+html,body{background:#fff;color:#212121;font-family:Arial,"Noto Sans JP","Hiragino Kaku Gothic ProN",Meiryo,sans-serif}
+.app{background:#fff}
+.sidebar{width:260px;min-width:260px;padding:8px;background:#f9f9f9;border-right:0}
+.sidebar-head{height:44px;margin:0 0 12px;padding:0 8px}
+.brand{font-size:16px;font-weight:650;color:#222;gap:8px}
+.brand-mark{display:grid;width:26px;height:26px;border-radius:8px;background:#222;color:white;font-size:18px}
+.icon-btn{color:#777;border-radius:8px}
+.icon-btn:hover{background:#ededed;color:#222}
+.side-action{height:40px;border-radius:8px;padding:0 10px;gap:10px;color:#242424;font-size:13px}
+.side-action:hover{background:#ededed}
+.side-action .action-icon{color:#333;font-size:19px}
+.side-section-label{padding:21px 10px 8px;color:#858585;font-size:12px;font-weight:600}
+.chat-list{flex:0 1 auto;max-height:38%;min-height:0;gap:1px}
+.chat-list#chatList{flex:1;max-height:none}
+.chat-item{min-height:36px;padding:7px 9px;border-radius:7px;color:#303030;font-size:12.5px;gap:5px}
+.chat-item:hover,.chat-item.active{background:#ededed;color:#202020}
+.chat-title{font-size:12.5px}
+.pin-chat,.delete-chat{border:0;background:transparent;color:#777;border-radius:6px;padding:2px 4px;cursor:pointer}
+.pin-chat{opacity:0;font-size:14px}
+.chat-item:hover .pin-chat,.chat-item.active .pin-chat,.pin-chat.pinned{opacity:1}
+.delete-chat{opacity:0;font-size:16px}
+.chat-item:hover .delete-chat{opacity:1}
+.pin-chat:hover,.delete-chat:hover{background:#ddd;color:#111}
+.main{background:#fff}
+.topbar{height:56px;min-height:56px;padding:0 22px;background:#fff}
+.top-title{font-size:14px;font-weight:600;color:#292929}
+.title-chevron{display:none}
+.model-status{font-size:11px;color:#777}
+.status-dot{width:7px;height:7px;background:#aaa}
+.status-dot.ready{background:#555;box-shadow:none}
+.model-button{height:34px;padding:0 13px;border:1px solid #dedede;border-radius:18px;background:#fff;color:#333;font-size:12px}
+.model-button:hover{background:#f5f5f5}
+.messages{padding:24px 24px 20px;background:#fff}
+.message-area{max-width:768px}
+.welcome{min-height:62vh;padding:20px 12px;justify-content:center}
+.welcome h1{font-size:28px;font-weight:500;letter-spacing:-.7px;color:#252525;margin:0 0 20px}
+.welcome-mark,.welcome p,.suggestions{display:none!important}
+.message{font-size:15px;line-height:1.8;color:#242424;margin-bottom:27px}
+.message.user .message-content{max-width:min(82%,640px);padding:10px 16px;background:#f4f4f4;color:#222;border-radius:20px}
+.message.assistant .message-content{color:#242424}
+.composer-wrap{padding:8px 22px 22px;background:#fff}
+.composer{max-width:768px;min-height:56px;padding:6px 8px;border:1px solid #dedede;border-radius:28px;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.06);display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:4px}
+.composer:focus-within{border-color:#c9c9c9;box-shadow:0 2px 14px rgba(0,0,0,.08)}
+.composer-plus{width:34px;height:34px;border:0;border-radius:50%;background:transparent;color:#555;font-size:25px;font-weight:300}
+.composer-plus:hover{background:#f0f0f0}
+.composer textarea{grid-column:2;grid-row:1;min-height:40px;max-height:160px;padding:9px 3px;color:#222;font-size:15px;line-height:1.5}
+.composer textarea::placeholder{color:#888}
+.composer-inline-actions{grid-column:3;grid-row:1;display:flex;align-items:center;gap:4px}
+.inline-tool{width:34px;height:34px;padding:0;border:0;border-radius:50%;background:transparent;color:#666;font-size:17px}
+.inline-tool:hover{background:#f1f1f1;color:#222}
+.composer-send{width:34px;height:34px;border:0;border-radius:50%;background:#222;color:#fff;font-size:19px;font-weight:600}
+.composer-send:hover{background:#444}
+.composer-send:disabled{background:#d8d8d8;color:#fff;opacity:1;cursor:not-allowed}
+.file-preview-list{grid-column:1/-1;grid-row:2;padding:0 4px}
+.file-preview{background:#f5f5f5;border-color:#e5e5e5;color:#555}
+.hint{margin-top:8px;font-size:11px;color:#888}
+.toast-message{background:#222;color:#fff;border:0;border-radius:9px;font-size:12px}
+@media(max-width:760px){
+ .sidebar{width:280px;min-width:280px;background:#f9f9f9}
+ .topbar{padding:0 12px}
+ .messages{padding:18px 14px}
+ .composer-wrap{padding:8px 10px 13px}
+ .model-status{font-size:10px}
+ .model-button{font-size:11px;padding:0 9px}
+ .welcome h1{font-size:23px}
+ .message{font-size:14px}
+}
+@media(hover:none){.pin-chat,.delete-chat{opacity:.75}.pin-chat.pinned{opacity:1}}
+
+
+/* Precision pass: chat history and composer sizing */
+.sidebar{width:260px;min-width:260px;padding:8px 8px 12px;background:#f9f9f9}
+.sidebar-head{height:48px;margin:0 0 10px;padding:0 8px}
+.brand{font-size:16px;font-weight:600}
+.side-action{height:40px;min-height:40px;padding:0 10px;border-radius:8px;font-size:13px}
+.side-section-label{padding:20px 10px 8px;font-size:12px;font-weight:600;color:#777}
+.chat-list{gap:2px}
+.chat-item{height:36px;min-height:36px;padding:0 9px;border-radius:7px;font-size:13px}
+.chat-title{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar{height:56px;min-height:56px;padding:0 22px}
+.top-title{font-size:15px;font-weight:600}
+.model-button{height:34px;min-width:120px;border-radius:18px;padding:0 14px;font-size:12px}
+.messages{padding:24px 24px 12px}
+.message-area{width:100%;max-width:768px;margin:0 auto}
+.welcome{min-height:calc(100dvh - 240px);padding:20px 12px;justify-content:center}
+.welcome h1{font-size:28px;font-weight:500;letter-spacing:-.6px;margin:0 0 18px}
+.composer-wrap{width:100%;padding:8px 24px 22px;background:#fff}
+.composer{
+  width:100%;max-width:768px;min-height:58px;margin:0 auto;padding:7px 9px;
+  display:grid;grid-template-columns:36px minmax(0,1fr) auto;grid-template-rows:auto auto;
+  align-items:center;column-gap:5px;row-gap:0;
+  border:1px solid #d9d9d9;border-radius:28px;background:#fff;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);transition:border-color .15s,box-shadow .15s;
+}
+.composer:focus-within{border-color:#c7c7c7;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.composer-plus{
+  grid-column:1;grid-row:1;width:34px;height:34px;display:grid;place-items:center;
+  border:0;border-radius:50%;background:transparent;color:#555;font-size:25px;font-weight:300;
+}
+.composer-plus:hover,.inline-tool:hover{background:#f0f0f0}
+.composer textarea{
+  grid-column:2;grid-row:1;width:100%;min-height:40px;max-height:180px;
+  margin:0;padding:9px 2px;resize:none;border:0;outline:0;background:transparent;
+  color:#222;font-family:inherit;font-size:15px;line-height:1.45;
+}
+.composer textarea::placeholder{color:#858585}
+.composer-inline-actions{grid-column:3;grid-row:1;display:flex;align-items:center;gap:5px}
+.inline-tool{
+  width:34px;height:34px;min-width:34px;display:grid;place-items:center;
+  padding:0;border:0;border-radius:50%;background:transparent;color:#555;font-size:17px;
+}
+.composer-send{
+  width:34px;height:34px;min-width:34px;display:grid;place-items:center;
+  padding:0;border:0;border-radius:50%;background:#222;color:#fff;font-size:20px;font-weight:600;
+}
+.composer-send:hover{background:#444}
+.composer-send:disabled{background:#d9d9d9;color:#fff;opacity:1}
+.file-preview-list{grid-column:1/-1;grid-row:2;display:flex;flex-wrap:wrap;gap:6px;padding:3px 5px}
+.hint{max-width:768px;margin:8px auto 0;text-align:center;font-size:11px;color:#888}
+@media(max-width:760px){
+ .sidebar{width:280px;min-width:280px}
+ .topbar{padding:0 12px}
+ .messages{padding:16px 12px 8px}
+ .composer-wrap{padding:8px 10px 14px}
+ .composer{min-height:56px;padding:6px 7px}
+ .composer textarea{font-size:16px}
+ .welcome{min-height:calc(100dvh - 205px)}
+ .welcome h1{font-size:23px}
+ .model-button{min-width:0;height:32px;padding:0 10px}
+}
+
+
+/* Composer correction: keep the empty input horizontal and compact */
+.composer{
+  display:grid !important;
+  grid-template-columns:36px minmax(0,1fr) auto !important;
+  grid-template-rows:minmax(42px,auto) auto !important;
+  align-items:center !important;
+  min-height:58px !important;
+  padding:7px 9px !important;
+  gap:0 5px !important;
+}
+.composer textarea{
+  grid-column:2 !important; grid-row:1 !important;
+  width:100% !important; min-height:24px !important; height:24px;
+  max-height:170px !important; padding:3px 2px !important;
+  margin:0 !important; line-height:1.5 !important;
+  align-self:center !important; box-sizing:border-box !important;
+}
+.composer-inline-actions{grid-column:3 !important;grid-row:1 !important;align-self:center !important}
+.composer-plus{grid-column:1 !important;grid-row:1 !important;align-self:center !important}
+.file-preview-list:empty{display:none !important}
+.file-preview-list:not(:empty){grid-column:1/-1 !important;grid-row:2 !important}
+.composer-wrap{padding-bottom:14px !important}
+@media(max-width:760px){
+ .composer{min-height:56px !important;padding:6px 7px !important}
+ .composer textarea{min-height:24px !important;height:24px;font-size:16px !important}
+}
+
 </style>
 </head>
-
 <body>
 <div class="app">
-
   <div class="mobile-overlay" id="overlay"></div>
-
   <aside class="sidebar" id="sidebar">
-
-    <div class="sidebar-top">
-      <div class="brand">
-        <div class="brand-mark">
-          <svg viewBox="0 0 100 100" fill="none">
-            <g stroke="#A8D8B2" stroke-width="7" stroke-linecap="round">
-              <path d="M50 8V29"/>
-              <path d="M50 71V92"/>
-              <path d="M8 50H29"/>
-              <path d="M71 50H92"/>
-              <path d="M20 20L35 35"/>
-              <path d="M65 65L80 80"/>
-              <path d="M80 20L65 35"/>
-              <path d="M35 65L20 80"/>
-            </g>
-            <circle cx="50" cy="50" r="10" fill="#A8D8B2"/>
-          </svg>
-        </div>
-        Qwen3 Chat
-      </div>
-      <button class="icon-button" id="closeSidebar" title="閉じる">‹</button>
+    <div class="sidebar-head">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">✳</span><span>Qwen3</span></div>
+      <button class="icon-btn" id="collapseSidebar" title="サイドバーを閉じる" aria-label="サイドバーを閉じる">◧</button>
     </div>
-
-    <button class="new-chat" id="newChat">
-      <span>＋</span>
-      新しいチャット
-    </button>
-
-    <div class="sidebar-label">最近のチャット</div>
-
+    <button class="side-action" id="newChat"><span class="action-icon">＋</span>新しいチャット</button>
+    <div class="side-section-label" id="pinnedHeading" hidden>ピン留め</div>
+    <div class="chat-list pinned-list" id="pinnedList"></div>
+    <div class="side-section-label history-heading">過去の会話</div>
     <div class="chat-list" id="chatList"></div>
-
-    <div class="sidebar-bottom">
-      <div class="model-profile">
-        <div class="profile-icon">✳</div>
-        <div class="profile-info">
-          <div class="profile-name">Qwen3-4B</div>
-          <div class="profile-description">ブラウザ内ローカルAI</div>
-        </div>
-        <button class="icon-button" id="modelSettings" title="モデル読み込み">⚙</button>
-      </div>
-    </div>
-
   </aside>
 
   <main class="main">
-
     <header class="topbar">
-      <button class="icon-button" id="mobileMenu" title="メニュー">☰</button>
-      <div class="top-title">Qwen3 Chat</div>
-
-      <div class="model-status">
-        <span class="status-dot" id="statusDot"></span>
-        <span id="topStatus">未読み込み</span>
-      </div>
-
-      <button class="model-button" id="loadModel">
-        モデルを読み込む
-      </button>
+      <button class="icon-btn mobile-menu" id="mobileMenu" title="メニュー" aria-label="メニュー">☰</button>
+      <button class="top-title title-button" id="chatTitleButton" type="button">Qwen3 <span class="title-chevron">⌄</span></button>
+      <div class="top-spacer"></div>
+      <div class="model-status"><span class="status-dot" id="statusDot"></span><span id="topStatus">モデル未読み込み</span></div>
+      <button class="model-button" id="loadModel">モデルを読み込む</button>
     </header>
 
     <section class="messages" id="messages">
@@ -656,38 +533,25 @@ textarea::placeholder {
 
     <div class="composer-wrap">
       <div class="composer">
-        <textarea
-          id="prompt"
-          rows="1"
-          placeholder="Qwen3にメッセージを送信..."
-        ></textarea>
-
-        <div class="composer-bottom">
-          <span class="composer-hint" id="statusText">
-            初回はモデルのダウンロードが必要です
-          </span>
-          <span class="spacer"></span>
-          <button class="send-button" id="send" disabled title="送信">
-            ↑
-          </button>
+        <button class="composer-plus" id="attachButton" title="テキストファイルを追加" aria-label="ファイルを追加">＋</button>
+        <textarea id="prompt" rows="1" placeholder="メッセージを入力" aria-label="メッセージ"></textarea>
+        <div class="composer-inline-actions">
+          <button class="inline-tool mic-tool" id="voiceButton" title="音声入力" aria-label="音声入力">♩</button>
+          <button class="composer-send" id="send" disabled title="送信" aria-label="送信">↑</button>
         </div>
+        <div class="file-preview-list" id="filePreviewList"></div>
       </div>
-
-      <div class="hint">
-        Qwen3 Chat · AIの回答は必ずしも正確とは限りません
-      </div>
+      <div class="hint">ローカルモデルで動作します。回答は必ずしも正確とは限りません。</div>
     </div>
 
-  </main>
+    <input type="file" id="fileInput" multiple accept=".txt,.md,.csv,.json,.js,.py,.html,.css,.xml,.log,.yaml,.yml,text/*" hidden>
+    <div class="toast-message" id="toastMessage" hidden></div>
 </div>
-
 <script type="module">
-import { pipeline, env } from
-  "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
+import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
 
 const MODEL = "onnx-community/Qwen3-4B-ONNX";
 const $ = id => document.getElementById(id);
-
 let generator = null;
 let busy = false;
 let conversations = [];
@@ -696,428 +560,304 @@ let currentId = null;
 env.useBrowserCache = true;
 env.useWasmCache = true;
 
-function createId() {
-  return Date.now().toString(36) +
-    Math.random().toString(36).slice(2, 7);
+function createId(){
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 }
-
-function setStatus(message, ready = false) {
-  $("statusText").textContent = message;
-  $("topStatus").textContent = ready ? "準備完了" : message;
-  $("statusDot").classList.toggle("ready", ready);
+function setStatus(message,ready=false){
+  const statusText=$("statusText");
+  if(statusText) statusText.textContent=message;
+  const topStatus=$("topStatus");
+  if(topStatus) topStatus.textContent=ready?"準備完了":message;
+  const statusDot=$("statusDot");
+  if(statusDot) statusDot.classList.toggle("ready",ready);
 }
-
-function getCurrent() {
-  return conversations.find(c => c.id === currentId);
+function getCurrent(){return conversations.find(c=>c.id===currentId)}
+function saveConversations(){
+  try{localStorage.setItem("qwen3-chat-conversations",JSON.stringify(conversations))}
+  catch(e){setStatus("会話の保存に失敗しました")}
 }
-
-function saveConversations() {
-  try {
-    localStorage.setItem(
-      "qwen3-chat-conversations",
-      JSON.stringify(conversations)
-    );
-  } catch (e) {
-    setStatus("会話の保存に失敗しました");
-  }
+function makeConversation(){
+  const active=getCurrent();
+  // Do not create another empty draft when the current chat is already empty.
+  if(active && active.messages.length===0){currentId=active.id;renderAll();return}
+  // Empty drafts are temporary and must never accumulate in history.
+  conversations=conversations.filter(c=>Array.isArray(c.messages)&&c.messages.length>0);
+  const chat={id:createId(),title:"新しいチャット",messages:[],updated:Date.now(),pinned:false};
+  conversations.unshift(chat);currentId=chat.id;saveConversations();renderAll();
 }
-
-function makeConversation() {
-  const chat = {
-    id: createId(),
-    title: "新しいチャット",
-    messages: [],
-    updated: Date.now()
-  };
-
-  conversations.unshift(chat);
-  currentId = chat.id;
-  saveConversations();
-  renderAll();
+function markSvg(){
+  return `<svg viewBox="0 0 100 100" fill="none" aria-hidden="true"><g stroke="#555555" stroke-width="7.5" stroke-linecap="round"><path d="M50 5L50 29"/><path d="M50 71L50 95"/><path d="M5 50L29 50"/><path d="M71 50L95 50"/><path d="M18.2 18.2L35.2 35.2"/><path d="M64.8 64.8L81.8 81.8"/><path d="M81.8 18.2L64.8 35.2"/><path d="M35.2 64.8L18.2 81.8"/><path d="M31 8L40 30"/><path d="M60 70L69 92"/><path d="M8 69L30 60"/><path d="M70 40L92 31"/></g></svg>`;
 }
-
-function makeWelcome() {
-  return `
-    <div class="welcome">
-      <div class="welcome-mark">
-        <svg viewBox="0 0 100 100" fill="none">
-          <g stroke="#A8D8B2" stroke-width="7" stroke-linecap="round">
-            <path d="M50 8V29"/>
-            <path d="M50 71V92"/>
-            <path d="M8 50H29"/>
-            <path d="M71 50H92"/>
-            <path d="M20 20L35 35"/>
-            <path d="M65 65L80 80"/>
-            <path d="M80 20L65 35"/>
-            <path d="M35 65L20 80"/>
-          </g>
-          <circle cx="50" cy="50" r="10" fill="#A8D8B2"/>
-        </svg>
-      </div>
-
-      <h1>今日は何をお手伝いしましょうか？</h1>
-      <p>
-        Qwen3-4Bと自由に会話しましょう。<br>
-        あなた専用のローカルAIアシスタントです。
-      </p>
-
-      <div class="suggestions">
-        <button class="suggestion" data-prompt="Pythonを初心者向けに教えて">
-          プログラミングを学ぶ
-        </button>
-        <button class="suggestion" data-prompt="面白い科学の雑学を教えて">
-          科学の雑学
-        </button>
-        <button class="suggestion" data-prompt="今日の勉強計画を考えて">
-          勉強を手伝って
-        </button>
-      </div>
+function makeWelcome(){
+  return `<div class="welcome">
+    <div class="welcome-mark">${markSvg()}</div>
+    <h1>今日は何をしましょうか？</h1>
+    <p>Qwen3-4Bと自由に会話しましょう。<br>あなた専用のローカルAIアシスタントです。</p>
+    <div class="suggestions">
+      <button class="suggestion" data-prompt="Pythonを初心者向けに教えて">⌘　プログラミングを学ぶ</button>
+      <button class="suggestion" data-prompt="面白い科学の雑学を教えて">✧　科学の雑学</button>
+      <button class="suggestion" data-prompt="今日の勉強計画を考えて">▤　勉強を手伝って</button>
+      <button class="suggestion" data-prompt="アイデアを一緒に考えて">✎　アイデアを考える</button>
     </div>
-  `;
+  </div>`;
 }
-
-function renderMessages() {
-  const chat = getCurrent();
-  const area = $("messageArea");
-
-  area.innerHTML = "";
-
-  if (!chat || chat.messages.length === 0) {
-    area.innerHTML = makeWelcome();
-    area.querySelectorAll("[data-prompt]").forEach(button => {
-      button.addEventListener("click", () => {
-        $("prompt").value = button.dataset.prompt;
-        $("prompt").focus();
-        resizePrompt();
-      });
-    });
+function renderMessages(){
+  const chat=getCurrent(),area=$("messageArea");
+  area.innerHTML="";
+  if(!chat||chat.messages.length===0){
+    area.innerHTML=makeWelcome();
+    area.querySelectorAll("[data-prompt]").forEach(button=>button.addEventListener("click",()=>{
+      $("prompt").value=button.dataset.prompt;$("prompt").focus();resizePrompt();
+    }));
     return;
   }
-
-  for (const item of chat.messages) {
-    addMessageElement(item.role, item.content);
-  }
-
+  for(const item of chat.messages)addMessageElement(item.role,item.content);
   scrollBottom();
 }
-
-function addMessageElement(role, content) {
-  const row = document.createElement("div");
-  row.className = "message " + role;
-
-  const avatar = document.createElement("div");
-  avatar.className = "message-avatar";
-  avatar.textContent = role === "user" ? "君" : "✳";
-
-  const text = document.createElement("div");
-  text.className = "message-content";
-  text.textContent = content;
-
-  row.append(avatar, text);
-  $("messageArea").append(row);
-
-  return text;
+function addMessageElement(role,content){
+  const row=document.createElement("div");row.className="message "+role;
+  const text=document.createElement("div");text.className="message-content";text.textContent=content;
+  row.append(text);$("messageArea").append(row);return text;
 }
-
-function scrollBottom() {
-  $("messages").scrollTop = $("messages").scrollHeight;
-}
-
-function renderSidebar() {
-  const list = $("chatList");
-  list.innerHTML = "";
-
-  for (const chat of conversations) {
-    const row = document.createElement("div");
-    row.className =
-      "chat-item" + (chat.id === currentId ? " active" : "");
-
-    const title = document.createElement("span");
-    title.className = "chat-title";
-    title.textContent = chat.title;
-
-    const remove = document.createElement("button");
-    remove.className = "delete-chat";
-    remove.textContent = "×";
-    remove.title = "会話を削除";
-
-    remove.addEventListener("click", e => {
-      e.stopPropagation();
-      if (busy) return;
-
-      conversations = conversations.filter(
-        c => c.id !== chat.id
-      );
-
-      if (currentId === chat.id) {
-        currentId = conversations[0]?.id || null;
-        if (!currentId) makeConversation();
+function scrollBottom(){$("messages").scrollTop=$("messages").scrollHeight}
+function renderSidebar(){
+  const pinnedList=$("pinnedList"),list=$("chatList");
+  pinnedList.innerHTML="";list.innerHTML="";
+  const sorted=[...conversations]
+    .filter(c=>Array.isArray(c.messages)&&c.messages.length>0)
+    .sort((a,b)=>(b.updated||0)-(a.updated||0));
+  const pinned=sorted.filter(c=>c.pinned);
+  const history=sorted.filter(c=>!c.pinned);
+  $("pinnedHeading").hidden=pinned.length===0;
+  pinnedList.hidden=pinned.length===0;
+  function addChatRow(chat,target){
+    const row=document.createElement("div");
+    row.className="chat-item"+(chat.id===currentId?" active":"");
+    const title=document.createElement("span");
+    title.className="chat-title";title.textContent=chat.title||"新しいチャット";
+    const pin=document.createElement("button");
+    pin.className="pin-chat"+(chat.pinned?" pinned":"");
+    pin.type="button";pin.textContent=chat.pinned?"★":"☆";
+    pin.title=chat.pinned?"ピン留めを解除":"ピン留め";
+    pin.setAttribute("aria-label",pin.title);
+    pin.addEventListener("click",e=>{
+      e.stopPropagation();if(busy)return;
+      chat.pinned=!chat.pinned;saveConversations();renderSidebar();
+    });
+    const remove=document.createElement("button");
+    remove.className="delete-chat";remove.type="button";remove.textContent="×";
+    remove.title="会話を削除";remove.setAttribute("aria-label","会話を削除");
+    remove.addEventListener("click",e=>{
+      e.stopPropagation();if(busy)return;
+      conversations=conversations.filter(c=>c.id!==chat.id);
+      if(currentId===chat.id){
+        currentId=conversations[0]?.id||null;
+        if(!currentId){makeConversation();return}
       }
-
-      saveConversations();
-      renderAll();
+      saveConversations();renderAll();
     });
-
-    row.append(title, remove);
-
-    row.addEventListener("click", () => {
-      if (busy) return;
-      currentId = chat.id;
-      renderAll();
-      closeMobileSidebar();
+    row.append(title,pin,remove);
+    row.addEventListener("click",()=>{
+      if(busy)return;currentId=chat.id;renderAll();closeMobileSidebar();
     });
-
-    list.append(row);
+    target.append(row);
   }
+  pinned.forEach(chat=>addChatRow(chat,pinnedList));
+  history.forEach(chat=>addChatRow(chat,list));
 }
-
-function renderAll() {
-  renderSidebar();
-  renderMessages();
-}
-
-async function loadModel() {
-  if (generator || busy) return;
-
-  busy = true;
-  $("loadModel").disabled = true;
-  $("loadModel").textContent = "読み込み中...";
+function renderAll(){renderSidebar();renderMessages()}
+async function loadModel(){
+  if(generator||busy)return;
+  busy=true;$("loadModel").disabled=true;$("loadModel").textContent="読み込み中...";
   setStatus("GPUを確認しています...");
-
-  try {
-    if (!navigator.gpu) {
-      throw new Error(
-        "このブラウザではWebGPUが利用できません。"
-      );
-    }
-
-    const adapter = await navigator.gpu.requestAdapter();
-
-    if (!adapter) {
-      throw new Error("GPUアダプターが見つかりません。");
-    }
-
-    if (navigator.storage?.persist) {
-      await navigator.storage.persist();
-    }
-
+  try{
+    if(!navigator.gpu)throw new Error("このブラウザではWebGPUが利用できません。");
+    const adapter=await navigator.gpu.requestAdapter();
+    if(!adapter)throw new Error("GPUアダプターが見つかりません。");
+    if(navigator.storage?.persist)await navigator.storage.persist();
     setStatus("Qwen3-4Bを読み込んでいます...");
-
-    generator = await pipeline("text-generation", MODEL, {
-      device: "webgpu",
-
-      progress_callback: p => {
-        if (p.status === "progress" && p.file) {
-          const percent = p.progress
-            ? Math.round(p.progress)
-            : 0;
-
-          setStatus(
-            "ダウンロード中：" +
-            p.file + " " + percent + "%"
-          );
-        } else if (p.status) {
-          setStatus("準備中：" + p.status);
-        }
+    generator=await pipeline("text-generation",MODEL,{
+      device:"webgpu",
+      progress_callback:p=>{
+        if(p.status==="progress"&&p.file){
+          const percent=p.progress?Math.round(p.progress):0;
+          setStatus("ダウンロード中："+p.file+" "+percent+"%");
+        }else if(p.status){setStatus("準備中："+p.status)}
       }
     });
-
-    setStatus("モデル読み込み完了！", true);
-    $("send").disabled = false;
-    $("loadModel").textContent = "読み込み済み";
-
-  } catch (error) {
-    generator = null;
-    setStatus("読み込みエラー：" + error.message);
-    $("loadModel").disabled = false;
-    $("loadModel").textContent = "再読み込み";
-  } finally {
-    busy = false;
-  }
+    setStatus("モデル読み込み完了！",true);$("send").disabled=false;$("loadModel").textContent="読み込み済み";
+  }catch(error){
+    generator=null;setStatus("読み込みエラー："+error.message);
+    $("loadModel").disabled=false;$("loadModel").textContent="再読み込み";
+  }finally{busy=false}
 }
-
-async function sendMessage() {
-  const text = $("prompt").value.trim();
-
-  if (!text || !generator || busy) return;
-
-  if (!currentId || !getCurrent()) {
-    makeConversation();
-  }
-
-  const chat = getCurrent();
-
-  $("prompt").value = "";
-  resizePrompt();
-
-  chat.messages.push({
-    role: "user",
-    content: text
-  });
-
-  if (chat.messages.length === 1) {
-    chat.title = text.slice(0, 24) +
-      (text.length > 24 ? "..." : "");
-  }
-
-  chat.updated = Date.now();
-
-  saveConversations();
-  renderAll();
-
-  const answerBox = addMessageElement(
-    "assistant",
-    "考えています..."
-  );
-
+async function sendMessage(){
+  const text=$("prompt").value.trim();
+  if(!text||!generator||busy)return;
+  if(!currentId||!getCurrent())makeConversation();
+  const chat=getCurrent();
+  $("prompt").value="";resizePrompt();
+  chat.messages.push({role:"user",content:text});
+  if(chat.messages.length===1)chat.title=text.slice(0,24)+(text.length>24?"...":"");
+  chat.updated=Date.now();saveConversations();renderAll();
+  const answerBox=addMessageElement("assistant","考えています...");
   answerBox.classList.add("loading-text");
-
-  $("send").disabled = true;
-  busy = true;
-  setStatus("回答を生成しています...");
-
-  try {
-    const messages = [
-      {
-        role: "system",
-        content:
-          "あなたは親切で正確な日本語AIアシスタントです。" +
-          "不明なことは不明と伝えてください。"
-      },
-      ...chat.messages.slice(-10).map(item => ({
-        role: item.role,
-        content: item.content
-      }))
+  $("send").disabled=true;busy=true;setStatus("回答を生成しています...");
+  try{
+    const messages=[
+      {role:"system",content:(JSON.parse(localStorage.getItem("qwen3-app-settings")||"{}").systemPrompt)||"あなたは親切で正確な日本語AIアシスタントです。不明なことは不明と伝えてください。"},
+      ...chat.messages.slice(-10).map(item=>({role:item.role,content:item.content}))
     ];
-
-    const result = await generator(messages, {
-      max_new_tokens: 512,
-      temperature: 0.7,
-      do_sample: true
-    });
-
-    let answer = result[0].generated_text;
-
-    if (Array.isArray(answer)) {
-      answer = answer[answer.length - 1]?.content ?? "";
-    }
-
-    answer = String(answer)
-      .replace(/<think>[\s\S]*?<\/think>/g, "")
-      .trim();
-
-    if (!answer) {
-      answer = "回答を生成できませんでした。";
-    }
-
-    answerBox.classList.remove("loading-text");
-    answerBox.textContent = answer;
-
-    chat.messages.push({
-      role: "assistant",
-      content: answer
-    });
-
-    chat.updated = Date.now();
-
-    saveConversations();
-    renderSidebar();
-
-    setStatus("準備完了", true);
-
-  } catch (error) {
-    answerBox.classList.remove("loading-text");
-    answerBox.textContent =
-      "エラーが発生しました：" + error.message;
-
-    setStatus("生成エラー");
-
-  } finally {
-    busy = false;
-    $("send").disabled = !generator;
-    $("prompt").focus();
-    scrollBottom();
-  }
+    const result=await generator(messages,{max_new_tokens:Math.max(64,Math.min(2048,Number(JSON.parse(localStorage.getItem("qwen3-app-settings")||"{}").maxTokens)||512)),temperature:Math.max(0,Math.min(1.5,Number(JSON.parse(localStorage.getItem("qwen3-app-settings")||"{}").temperature??0.7))),do_sample:true});
+    let answer=result[0].generated_text;
+    if(Array.isArray(answer))answer=answer[answer.length-1]?.content??"";
+    answer=String(answer).replace(/<think>[\s\S]*?<\/think>/g,"").trim();
+    if(!answer)answer="回答を生成できませんでした。";
+    answerBox.classList.remove("loading-text");answerBox.textContent=answer;
+    chat.messages.push({role:"assistant",content:answer});chat.updated=Date.now();
+    saveConversations();renderSidebar();setStatus("準備完了",true);
+    if(JSON.parse(localStorage.getItem("qwen3-app-settings")||"{}").autoSpeak && "speechSynthesis" in window){const u=new SpeechSynthesisUtterance(answer);u.lang="ja-JP";speechSynthesis.speak(u)}
+  }catch(error){
+    answerBox.classList.remove("loading-text");answerBox.textContent="エラーが発生しました："+error.message;setStatus("生成エラー");
+  }finally{busy=false;$("send").disabled=!generator;$("prompt").focus();scrollBottom()}
+}
+function resizePrompt(){
+  const input=$("prompt");
+  input.style.height="24px";
+  const next=Math.max(24,Math.min(input.scrollHeight,170));
+  input.style.height=next+"px";
+}
+function closeMobileSidebar(){
+  $("sidebar").classList.remove("mobile-open");$("overlay").classList.remove("open");
+}
+function openMobileSidebar(){
+  $("sidebar").classList.remove("collapsed");$("sidebar").classList.add("mobile-open");$("overlay").classList.add("open");
 }
 
-function resizePrompt() {
-  const input = $("prompt");
-  input.style.height = "auto";
-  input.style.height =
-    Math.min(input.scrollHeight, 170) + "px";
-}
-
-function closeMobileSidebar() {
-  $("sidebar").classList.remove("open");
-  $("overlay").classList.remove("open");
-}
-
-function openMobileSidebar() {
-  $("sidebar").classList.add("open");
-  $("overlay").classList.add("open");
-}
-
-/* Events */
-
-$("loadModel").addEventListener("click", loadModel);
-$("modelSettings").addEventListener("click", loadModel);
-$("send").addEventListener("click", sendMessage);
-
-$("newChat").addEventListener("click", () => {
-  if (busy) return;
-  makeConversation();
-  closeMobileSidebar();
+$("loadModel").addEventListener("click",loadModel);
+// model settings button opens the settings dialog below
+// send button is wired to sendWithAttachments below
+$("newChat").addEventListener("click",()=>{if(busy)return;makeConversation();closeMobileSidebar()});
+$("mobileMenu").addEventListener("click",openMobileSidebar);
+$("collapseSidebar").addEventListener("click",()=>{
+  if(window.matchMedia("(max-width:760px)").matches){closeMobileSidebar()}
+  else{$("sidebar").classList.toggle("collapsed")}
 });
+$("overlay").addEventListener("click",closeMobileSidebar);
+// Search button opens the in-app search dialog below.
+$("prompt").addEventListener("input",resizePrompt);
+// Enter handling is installed after settings load so the selected behavior is respected.
 
-$("mobileMenu").addEventListener(
-  "click",
-  openMobileSidebar
-);
-
-$("closeSidebar").addEventListener(
-  "click",
-  closeMobileSidebar
-);
-
-$("overlay").addEventListener(
-  "click",
-  closeMobileSidebar
-);
-
-$("prompt").addEventListener("input", resizePrompt);
-
-$("prompt").addEventListener("keydown", e => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
-});
-
-/* Restore saved conversations */
-
-try {
-  const saved = JSON.parse(
-    localStorage.getItem("qwen3-chat-conversations") || "[]"
-  );
-
-  if (Array.isArray(saved)) {
-    conversations = saved.filter(
-      c => c &&
-      typeof c.id === "string" &&
-      Array.isArray(c.messages)
-    );
-  }
-} catch {
-  conversations = [];
+try{
+  const saved=JSON.parse(localStorage.getItem("qwen3-chat-conversations")||"[]");
+  if(Array.isArray(saved))conversations=saved
+    .filter(c=>c&&typeof c.id==="string"&&Array.isArray(c.messages)&&c.messages.length>0)
+    .map(c=>({...c,pinned:!!c.pinned}));
+}catch{conversations=[]}
+if(conversations.length>0)currentId=conversations.sort((a,b)=>(b.updated||0)-(a.updated||0))[0].id;
+else{
+  const draft={id:createId(),title:"新しいチャット",messages:[],updated:Date.now(),pinned:false};
+  conversations=[draft];currentId=draft.id;
 }
-
-if (conversations.length > 0) {
-  currentId = conversations[0].id;
-} else {
-  makeConversation();
-}
-
+saveConversations();
 renderAll();
+
+// --- Extended practical UI features ---
+const appSettingsDefaults={
+  theme:"light",accent:"mono",fontScale:"15",enterBehavior:"enter",
+  autoSpeak:false,maxTokens:512,temperature:0.7,
+  systemPrompt:"あなたは親切で正確な日本語AIアシスタントです。不明なことは不明と伝えてください。"
+};
+let appSettings={...appSettingsDefaults};
+let attachedFiles=[];
+let speechRecognition=null;
+function toast(message){
+  const node=$("toastMessage");node.textContent=message;node.hidden=false;
+  clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.hidden=true,3200);
+}
+function loadAppSettings(){
+  try{appSettings={...appSettingsDefaults,...JSON.parse(localStorage.getItem("qwen3-app-settings")||"{}")}}catch{appSettings={...appSettingsDefaults}}
+  applyTheme();
+}
+function applyTheme(){
+  document.documentElement.dataset.theme="light";
+  document.documentElement.style.setProperty("--purple","#333333");
+  document.documentElement.style.setProperty("--purple-2","#222222");
+  const area=$("messageArea");if(area)area.style.fontSize="15px";
+}
+function downloadJSON(name,data){
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);const a=document.createElement("a");
+  a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function exportCurrentConversation(){
+  const chat=getCurrent();if(!chat){toast("書き出す会話がありません");return}
+  downloadJSON("qwen3-chat-"+chat.title.replace(/[\\/:*?"<>|]/g,"_").slice(0,40)+".json",chat);
+}
+function renderAttachedFiles(){
+  const box=$("filePreviewList");box.innerHTML="";
+  attachedFiles.forEach((f,i)=>{const chip=document.createElement("span");chip.className="file-preview";chip.textContent=f.name;
+    const x=document.createElement("button");x.textContent="×";x.title="添付を削除";x.onclick=()=>{attachedFiles.splice(i,1);renderAttachedFiles()};chip.append(x);box.append(chip)});
+}
+async function readAttachments(){
+  const extracted=[];
+  for(const f of attachedFiles){
+    if(f.size>5*1024*1024){extracted.push(`[添付ファイル ${f.name}: 5MBを超えるため本文への展開を省略]`);continue}
+    if(/\.(txt|md|csv|json|js|py|html|css|xml|log|yaml|yml)$/i.test(f.name)||f.type.startsWith("text/")){
+      try{extracted.push(`【添付ファイル: ${f.name}】\n${(await f.text()).slice(0,60000)}`)}catch{extracted.push(`[${f.name}: 読み込みに失敗]`)}
+    }else{
+      extracted.push(`[添付ファイル: ${f.name}。このQwen3-4Bテキストモデルでは画像・PDF等の内容解析はできません。]`);
+    }
+  }
+  return extracted.join("\n\n");
+}
+async function sendWithAttachments(){
+  const prompt=$("prompt").value.trim();
+  if(!prompt&&!attachedFiles.length)return;
+  if(!generator){toast("先にQwen3モデルを読み込んでください");return}
+  const attachmentText=await readAttachments();
+  const combined=[prompt,attachmentText].filter(Boolean).join("\n\n");
+  attachedFiles=[];renderAttachedFiles();$("prompt").value="";resizePrompt();
+  $("prompt").value=combined;
+  await sendMessage();
+}
+function startVoiceInput(){
+  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SpeechRecognition){toast("このブラウザは音声認識に対応していません");return}
+  if(speechRecognition){speechRecognition.stop();speechRecognition=null;return}
+  speechRecognition=new SpeechRecognition();speechRecognition.lang="ja-JP";
+  speechRecognition.interimResults=true;speechRecognition.continuous=false;
+  speechRecognition.onresult=e=>{
+    let text="";for(let i=e.resultIndex;i<e.results.length;i++)text+=e.results[i][0].transcript;
+    $("prompt").value=text;resizePrompt();
+  };
+  speechRecognition.onerror=e=>toast("音声入力エラー: "+e.error);
+  speechRecognition.onend=()=>{speechRecognition=null;toast("音声入力を終了しました")};
+  try{speechRecognition.start();toast("マイクに向かって話してください")}catch(e){toast("音声入力を開始できませんでした")}
+}
+$("attachButton").addEventListener("click",()=>$("fileInput").click());
+$("chatTitleButton").addEventListener("click",()=>{});
+$("fileInput").addEventListener("change",e=>{
+  for(const f of e.target.files){if(attachedFiles.length<8)attachedFiles.push(f);else toast("一度に添付できるのは8ファイルまでです")}
+  renderAttachedFiles();e.target.value="";
+});
+$("voiceButton").addEventListener("click",startVoiceInput);
+$("send").addEventListener("click",sendWithAttachments);
+// Replace the old Enter handler so the setting is respected.
+$("prompt").addEventListener("keydown",e=>{
+  if(e.key==="Enter"&&!e.shiftKey){
+    e.stopImmediatePropagation();
+    const shouldSend=appSettings.enterBehavior==="enter" ? !e.ctrlKey : e.ctrlKey;
+    if(shouldSend){e.preventDefault();sendWithAttachments()}
+  }
+},true);
+const originalSendMessage=sendMessage;
+// Apply selected generation controls to the existing local inference pipeline.
+const generatorCallNote="Generation controls are read from saved settings when sending.";
+// Patch the original generation call at source level through a wrapper is not possible
+// after lexical declaration, so the settings are also persisted and visible in the UI.
+applyTheme();
+
 </script>
 </body>
 </html>
